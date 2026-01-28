@@ -62,23 +62,34 @@ const ViaSacraPage = () => {
   };
 
   return (
-    <div className="min-h-screen pb-24" data-testid="via-sacra-page">
-      {/* Header with map */}
-      <div className="bg-card border-b border-border shadow-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <ViaMap currentStation={currentStation} totalStations={14} />
-        </div>
-      </div>
-
-      {/* Station content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {loading ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <p className="text-xl text-muted-foreground">Carregando estação...</p>
+    <div className="h-screen overflow-hidden pb-24 md:pb-0" data-testid="via-sacra-page">
+      <div className="flex h-full flex-col md:flex-row">
+        {/* Map column */}
+        <div className="bg-card border-b md:border-b-0 md:border-r border-border shadow-md md:shadow-none md:w-[35%] lg:w-[30%]">
+          <div className="flex h-[33vh] items-center justify-center px-4 py-4 md:sticky md:top-0 md:h-screen md:py-0">
+            <div className="w-full max-w-2xl md:max-w-none">
+              <div className="block md:hidden">
+                <ViaMap currentStation={currentStation} totalStations={14} />
+              </div>
+              <div className="hidden md:block">
+                <ViaMap currentStation={currentStation} totalStations={14} orientation="vertical" />
+              </div>
+            </div>
           </div>
-        ) : (
-          <StationCard station={stationData} />
-        )}
+        </div>
+
+        {/* Station content */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 pb-24 md:px-8 md:py-10 md:pb-28">
+          <div className="mx-auto max-w-3xl">
+            {loading ? (
+              <div className="flex items-center justify-center min-h-[400px]">
+                <p className="text-xl text-muted-foreground">Carregando estação...</p>
+              </div>
+            ) : (
+              <StationCard station={stationData} />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
