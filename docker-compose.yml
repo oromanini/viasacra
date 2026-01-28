@@ -1,0 +1,45 @@
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: test_database
+      CORS_ORIGINS: "*"
+    depends_on:
+      - mongo
+    command: >
+      sh -lc "uvicorn server:app --host 0.0.0.0 --port 8000 --reload"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      REACT_APP_BACKEND_URL: http://localhost:8000
+      WDS_SOCKET_PORT: "0"
+      ENABLE_HEALTH_CHECK: "false"
+    depends_on:
+      - backend
+    command: >
+      sh -lc "yarn install && yarn start"
+
+volumes:
+  mongo_data:
