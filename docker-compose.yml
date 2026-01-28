@@ -21,7 +21,7 @@ services:
     depends_on:
       - mongo
     command: >
-      sh -lc "uvicorn server:app --host 0.0.0.0 --port 8000 --reload"
+      sh -lc "python seed_database.py && uvicorn server:app --host 0.0.0.0 --port 8000 --reload"
 
   frontend:
     build:

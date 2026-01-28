@@ -59,6 +59,17 @@ def seed_database() -> None:
 
         db = client[db_name]
 
+        existing_intro = db.intro.count_documents({})
+        existing_stations = db.stations.count_documents({})
+        existing_final_prayers = db.final_prayers.count_documents({})
+
+        if any((existing_intro, existing_stations, existing_final_prayers)):
+            print("\n✅ Banco já populado. Ignorando seed.")
+            print(f"   - Intro:         {existing_intro} documento")
+            print(f"   - Estações:      {existing_stations} documentos")
+            print(f"   - Orações finais:{existing_final_prayers} documentos")
+            return
+
         # Load JSON data
         with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -67,12 +78,6 @@ def seed_database() -> None:
         for key in ("intro", "stations", "final_prayers"):
             if key not in data:
                 raise ValueError(f"JSON inválido: chave obrigatória '{key}' não encontrada.")
-
-        # Clear existing data
-        print("\n🧹 Limpando dados existentes...")
-        db.intro.delete_many({})
-        db.stations.delete_many({})
-        db.final_prayers.delete_many({})
 
         # Insert intro
         print("➡️  Inserindo oração inicial...")
