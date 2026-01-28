@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Cross } from 'lucide-react';
@@ -10,8 +10,21 @@ const API = `${BACKEND_URL}/api`;
 
 const IntroPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [intro, setIntro] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [roomId, setRoomId] = useState(null);
+  const [role, setRole] = useState('solo');
+
+  useEffect(() => {
+    const storedRoomId = searchParams.get('roomId') || localStorage.getItem('viaSacraRoomId');
+    const storedRole = localStorage.getItem('viaSacraRole') || 'solo';
+    if (storedRoomId) {
+      setRoomId(storedRoomId);
+      localStorage.setItem('viaSacraRoomId', storedRoomId);
+    }
+    setRole(storedRole);
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchIntro = async () => {
@@ -28,8 +41,19 @@ const IntroPage = () => {
     fetchIntro();
   }, []);
 
-  const handleStart = () => {
-    navigate('/via-sacra?station=1');
+  const handleStart = async () => {
+    if (!roomId) {
+      navigate('/via-sacra?station=1');
+      return;
+    }
+
+    try {
+      const response = await axios.get(`${API}/rooms/${roomId}`);
+      const station = response.data.current_station || 1;
+      navigate(`/via-sacra?roomId=${roomId}&station=${station}`);
+    } catch (error) {
+      console.error('Erro ao carregar a sala:', error);
+    }
   };
 
   if (loading) {
@@ -77,7 +101,7 @@ const IntroPage = () => {
                 className="min-h-[56px] px-12 text-lg bg-primary hover:bg-primary/90"
                 data-testid="start-button"
               >
-                Começar Via Sacra
+                {role === 'orante' ? 'Entrar na Via Sacra' : 'Começar Via Sacra'}
               </Button>
             </div>
           </CardContent>

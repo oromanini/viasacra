@@ -6,8 +6,12 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List
 import json
+from datetime import datetime, timedelta, timezone
+import hashlib
+import uuid
+import asyncio
 
 
 ROOT_DIR = Path(__file__).parent
@@ -50,6 +54,32 @@ class FinalPrayer(BaseModel):
     title: str
     text: str
 
+class RoomCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=4)
+
+class RoomJoinRequest(BaseModel):
+    room_id: str
+    password: str
+
+class RoomStationUpdate(BaseModel):
+    station: int = Field(..., ge=1, le=14)
+    host_token: str
+
+class RoomInfo(BaseModel):
+    room_id: str
+    name: str
+    expires_at: datetime
+    current_station: int
+
+class RoomCreatedResponse(RoomInfo):
+    host_token: str
+
+class RoomListItem(BaseModel):
+    room_id: str
+    name: str
+    expires_at: datetime
+
 
 # Initialize database with Via Sacra data
 async def init_db():
@@ -84,6 +114,29 @@ async def init_db():
     except Exception as e:
         logger.error(f"Error initializing database: {e}")
 
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+async def expire_rooms_if_needed():
+    now = datetime.now(timezone.utc)
+    await db.rooms.update_many(
+        {"active": True, "expires_at": {"$lte": now}},
+        {"$set": {"active": False}},
+    )
+
+async def expire_rooms_loop():
+    while True:
+        await expire_rooms_if_needed()
+        await asyncio.sleep(60 * 10)
+
+def room_to_info(room) -> RoomInfo:
+    return RoomInfo(
+        room_id=room["room_id"],
+        name=room["name"],
+        expires_at=room["expires_at"],
+        current_station=room["current_station"],
+    )
+
 
 # API Routes
 @api_router.get("/")
@@ -117,6 +170,95 @@ async def get_final_prayers():
     prayers = await db.final_prayers.find({}, {"_id": 0}).to_list(10)
     return prayers
 
+@api_router.get("/rooms", response_model=List[RoomListItem])
+async def list_rooms():
+    await expire_rooms_if_needed()
+    rooms = await db.rooms.find(
+        {"active": True, "expires_at": {"$gt": datetime.now(timezone.utc)}},
+        {"_id": 0, "password_hash": 0, "host_token": 0},
+    ).sort("created_at", -1).to_list(100)
+    return [RoomListItem(**room) for room in rooms]
+
+@api_router.post("/rooms", response_model=RoomCreatedResponse)
+async def create_room(room: RoomCreateRequest):
+    now = datetime.now(timezone.utc)
+    room_id = str(uuid.uuid4())
+    expires_at = now + timedelta(hours=24)
+    host_token = str(uuid.uuid4())
+
+    new_room = {
+        "room_id": room_id,
+        "name": room.name.strip(),
+        "password_hash": hash_password(room.password),
+        "created_at": now,
+        "expires_at": expires_at,
+        "active": True,
+        "current_station": 1,
+        "host_token": host_token,
+    }
+    await db.rooms.insert_one(new_room)
+    return RoomCreatedResponse(
+        room_id=room_id,
+        name=new_room["name"],
+        expires_at=expires_at,
+        current_station=1,
+        host_token=host_token,
+    )
+
+@api_router.post("/rooms/join", response_model=RoomInfo)
+async def join_room(payload: RoomJoinRequest):
+    await expire_rooms_if_needed()
+    room = await db.rooms.find_one(
+        {"room_id": payload.room_id, "active": True},
+        {"_id": 0},
+    )
+    if not room:
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    if room["expires_at"] <= datetime.now(timezone.utc):
+        await db.rooms.update_one(
+            {"room_id": payload.room_id},
+            {"$set": {"active": False}},
+        )
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    if hash_password(payload.password) != room["password_hash"]:
+        raise HTTPException(status_code=401, detail="Senha incorreta.")
+    return room_to_info(room)
+
+@api_router.get("/rooms/{room_id}", response_model=RoomInfo)
+async def get_room(room_id: str):
+    await expire_rooms_if_needed()
+    room = await db.rooms.find_one(
+        {"room_id": room_id, "active": True},
+        {"_id": 0},
+    )
+    if not room:
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    if room["expires_at"] <= datetime.now(timezone.utc):
+        await db.rooms.update_one(
+            {"room_id": room_id},
+            {"$set": {"active": False}},
+        )
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    return room_to_info(room)
+
+@api_router.patch("/rooms/{room_id}/station", response_model=RoomInfo)
+async def update_room_station(room_id: str, payload: RoomStationUpdate):
+    await expire_rooms_if_needed()
+    room = await db.rooms.find_one(
+        {"room_id": room_id, "active": True},
+        {"_id": 0},
+    )
+    if not room:
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    if room["host_token"] != payload.host_token:
+        raise HTTPException(status_code=403, detail="Apenas o anfitrião pode avançar.")
+    await db.rooms.update_one(
+        {"room_id": room_id},
+        {"$set": {"current_station": payload.station}},
+    )
+    room["current_station"] = payload.station
+    return room_to_info(room)
+
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -139,7 +281,11 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def startup_event():
     await init_db()
+    app.state.expire_rooms_task = asyncio.create_task(expire_rooms_loop())
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+    task = getattr(app.state, "expire_rooms_task", None)
+    if task:
+        task.cancel()
