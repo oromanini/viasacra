@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import ViaMap from '@/components/ViaMap';
@@ -14,14 +14,54 @@ const ViaSacraPage = () => {
   const [currentStation, setCurrentStation] = useState(1);
   const [stationData, setStationData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [roomId, setRoomId] = useState(null);
+  const [role, setRole] = useState('solo');
+  const [hostToken, setHostToken] = useState(null);
+  const [syncMessage, setSyncMessage] = useState('');
 
   // Get station from URL
   useEffect(() => {
     const stationParam = parseInt(searchParams.get('station')) || 1;
+    const storedRoomId = searchParams.get('roomId') || localStorage.getItem('viaSacraRoomId');
+    const storedRole = localStorage.getItem('viaSacraRole') || 'solo';
+    const storedHostToken = localStorage.getItem('viaSacraHostToken');
+    if (storedRoomId) {
+      setRoomId(storedRoomId);
+      localStorage.setItem('viaSacraRoomId', storedRoomId);
+    }
+    setRole(storedRole);
+    setHostToken(storedHostToken);
     if (stationParam >= 1 && stationParam <= 14) {
       setCurrentStation(stationParam);
     }
   }, [searchParams]);
+
+  const fetchRoomStation = useCallback(async () => {
+    if (!roomId) {
+      return;
+    }
+    try {
+      const response = await axios.get(`${API}/rooms/${roomId}`);
+      const station = response.data.current_station || 1;
+      setSyncMessage('');
+      if (role !== 'host') {
+        setCurrentStation(station);
+        setSearchParams({ station, roomId });
+      }
+    } catch (error) {
+      console.error('Erro ao sincronizar sala:', error);
+      setSyncMessage('Sala expirada ou indisponível.');
+    }
+  }, [roomId, role, setSearchParams]);
+
+  useEffect(() => {
+    if (!roomId) {
+      return undefined;
+    }
+    fetchRoomStation();
+    const interval = setInterval(fetchRoomStation, 5000);
+    return () => clearInterval(interval);
+  }, [roomId, fetchRoomStation]);
 
   // Fetch station data
   useEffect(() => {
@@ -42,21 +82,45 @@ const ViaSacraPage = () => {
     }
   }, [currentStation]);
 
-  const handlePrevious = () => {
-    if (currentStation > 1) {
-      const newStation = currentStation - 1;
-      setSearchParams({ station: newStation });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handlePrevious = async () => {
+    if (currentStation <= 1) {
+      return;
     }
+    const newStation = currentStation - 1;
+    if (roomId && role === 'host') {
+      try {
+        await axios.patch(`${API}/rooms/${roomId}/station`, {
+          station: newStation,
+          host_token: hostToken,
+        });
+        setSearchParams({ station: newStation, roomId });
+      } catch (error) {
+        console.error('Erro ao atualizar estação:', error);
+      }
+    } else if (!roomId) {
+      setSearchParams({ station: newStation });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStation < 14) {
       const newStation = currentStation + 1;
-      setSearchParams({ station: newStation });
+      if (roomId && role === 'host') {
+        try {
+          await axios.patch(`${API}/rooms/${roomId}/station`, {
+            station: newStation,
+            host_token: hostToken,
+          });
+          setSearchParams({ station: newStation, roomId });
+        } catch (error) {
+          console.error('Erro ao atualizar estação:', error);
+        }
+      } else if (!roomId) {
+        setSearchParams({ station: newStation });
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
-      // Go to final page after station 14
       navigate('/final');
     }
   };
@@ -81,6 +145,16 @@ const ViaSacraPage = () => {
         {/* Station content */}
         <div className="flex-1 overflow-y-auto px-4 py-6 pb-24 md:px-8 md:py-10 md:pb-28">
           <div className="mx-auto max-w-3xl">
+            {roomId && role !== 'host' && (
+              <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
+                Acompanhando o anfitrião. As etapas são sincronizadas automaticamente.
+              </div>
+            )}
+            {syncMessage && (
+              <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {syncMessage}
+              </div>
+            )}
             {loading ? (
               <div className="flex items-center justify-center min-h-[400px]">
                 <p className="text-xl text-muted-foreground">Carregando estação...</p>
@@ -98,6 +172,7 @@ const ViaSacraPage = () => {
         totalStations={14}
         onPrevious={handlePrevious}
         onNext={handleNext}
+        allowNavigation={!roomId || role === 'host'}
       />
     </div>
   );

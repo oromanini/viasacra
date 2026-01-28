@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const Navigation = ({ currentStation, totalStations, onPrevious, onNext }) => {
+const Navigation = ({ currentStation, totalStations, onPrevious, onNext, allowNavigation = true }) => {
   const hasPrevious = currentStation > 1;
   const hasNext = currentStation < totalStations;
 
@@ -14,7 +14,7 @@ const Navigation = ({ currentStation, totalStations, onPrevious, onNext }) => {
       <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
         <Button
           onClick={onPrevious}
-          disabled={!hasPrevious}
+          disabled={!hasPrevious || !allowNavigation}
           variant="outline"
           size="lg"
           className="min-h-[48px] flex-1 max-w-[200px]"
@@ -33,7 +33,7 @@ const Navigation = ({ currentStation, totalStations, onPrevious, onNext }) => {
 
         <Button
           onClick={onNext}
-          disabled={!hasNext}
+          disabled={!hasNext || !allowNavigation}
           size="lg"
           className="min-h-[48px] flex-1 max-w-[200px] bg-primary hover:bg-primary/90"
           data-testid="next-button"
