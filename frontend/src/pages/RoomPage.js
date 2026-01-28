@@ -139,7 +139,7 @@ const RoomPage = () => {
               ) : (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Salas disponíveis:</p>
-                  <div className="max-h-80 space-y-2 overflow-y-auto pr-2">
+                  <div className="max-h-[252px] space-y-2 overflow-y-scroll pr-2">
                     {rooms.map((room) => (
                       <button
                         key={room.room_id}
