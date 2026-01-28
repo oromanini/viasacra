@@ -1,9 +1,9 @@
 import React from 'react';
 import { User } from 'lucide-react';
 
-const ViaMap = ({ currentStation, totalStations = 14 }) => {
+const ViaMap = ({ currentStation, totalStations = 14, orientation = 'horizontal' }) => {
   // Define path points for a winding path
-  const pathPoints = [
+  const basePathPoints = [
     { x: 50, y: 50 },    // Station 1
     { x: 150, y: 80 },   // Station 2
     { x: 250, y: 60 },   // Station 3
@@ -20,6 +20,13 @@ const ViaMap = ({ currentStation, totalStations = 14 }) => {
     { x: 250, y: 170 }   // Station 14
   ];
 
+  const pathPoints = orientation === 'vertical'
+    ? basePathPoints.map((point) => ({ x: point.y, y: point.x }))
+    : basePathPoints;
+
+  const viewBox = orientation === 'vertical' ? '0 0 320 600' : '0 0 600 320';
+  const maxHeight = orientation === 'vertical' ? '560px' : '400px';
+
   // Create SVG path
   const pathD = pathPoints.map((point, index) => {
     if (index === 0) return `M ${point.x} ${point.y}`;
@@ -35,9 +42,9 @@ const ViaMap = ({ currentStation, totalStations = 14 }) => {
   return (
     <div className="w-full" data-testid="via-map">
       <svg 
-        viewBox="0 0 600 320" 
+        viewBox={viewBox} 
         className="w-full h-auto"
-        style={{ maxHeight: '400px' }}
+        style={{ maxHeight }}
       >
         {/* Background path */}
         <path
