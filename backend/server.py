@@ -130,12 +130,18 @@ async def expire_rooms_loop():
         await asyncio.sleep(60 * 10)
 
 def room_to_info(room) -> RoomInfo:
+    expires_at = ensure_utc(room["expires_at"])
     return RoomInfo(
         room_id=room["room_id"],
         name=room["name"],
-        expires_at=room["expires_at"],
+        expires_at=expires_at,
         current_station=room["current_station"],
     )
+
+def ensure_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 # API Routes
@@ -177,6 +183,8 @@ async def list_rooms():
         {"active": True, "expires_at": {"$gt": datetime.now(timezone.utc)}},
         {"_id": 0, "password_hash": 0, "host_token": 0},
     ).sort("created_at", -1).to_list(100)
+    for room in rooms:
+        room["expires_at"] = ensure_utc(room["expires_at"])
     return [RoomListItem(**room) for room in rooms]
 
 @api_router.post("/rooms", response_model=RoomCreatedResponse)
@@ -214,7 +222,7 @@ async def join_room(payload: RoomJoinRequest):
     )
     if not room:
         raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
-    if room["expires_at"] <= datetime.now(timezone.utc):
+    if ensure_utc(room["expires_at"]) <= datetime.now(timezone.utc):
         await db.rooms.update_one(
             {"room_id": payload.room_id},
             {"$set": {"active": False}},
@@ -233,7 +241,7 @@ async def get_room(room_id: str):
     )
     if not room:
         raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
-    if room["expires_at"] <= datetime.now(timezone.utc):
+    if ensure_utc(room["expires_at"]) <= datetime.now(timezone.utc):
         await db.rooms.update_one(
             {"room_id": room_id},
             {"$set": {"active": False}},
