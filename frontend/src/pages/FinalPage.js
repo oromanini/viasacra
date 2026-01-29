@@ -12,7 +12,7 @@ A Igreja, como mãe, nos recorda que este exercício piedoso, vivido com fé e r
 
 Que esta graça nos ajude a carregar nossas cruzes com mais amor, a perdoar com mais generosidade e a viver como verdadeiros discípulos daquele que deu a vida por nós. Que os frutos desta caminhada permaneçam em nossos corações e se traduzam em caridade no dia a dia. ✝️`;
   const imageUrl =
-    'https://upload.wikimedia.org/wikipedia/commons/4/4e/Titian_-_Christ_Carrying_the_Cross_-_WGA22813.jpg';
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Christ_Carrying_the_Cross_%28El_Greco%29.jpg/1280px-Christ_Carrying_the_Cross_%28El_Greco%29.jpg';
 
   const handleReturnHome = () => {
     navigate('/');
@@ -46,12 +46,12 @@ Que esta graça nos ajude a carregar nossas cruzes com mais amor, a perdoar com 
               <div className="rounded-2xl border border-amber-200/70 bg-amber-50/60 p-4 shadow-sm">
                 <img
                   src={imageUrl}
-                  alt="Cristo carregando a cruz, de Ticiano."
+                  alt="Cristo carregando a cruz, de El Greco."
                   className="w-full rounded-lg border border-amber-200/80 shadow-sm"
                 />
               </div>
               <figcaption className="text-sm text-muted-foreground">
-                🔹 Cristo carregando a cruz – Ticiano
+                🔹 Cristo carregando a cruz – El Greco
               </figcaption>
             </figure>
           </CardContent>
