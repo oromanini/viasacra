@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 const ADMIN_EMAIL = 'oscar.romanini.jr@gmail.com';
 const ADMIN_TOKEN_KEY = 'viaSacraAdminToken';
 
@@ -29,7 +28,9 @@ const AdminPage = () => {
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [error, setError] = useState('');
   const [authError, setAuthError] = useState('');
-  const [scriptReady, setScriptReady] = useState(false);
+  const [loginEmail, setLoginEmail] = useState(ADMIN_EMAIL);
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const isAuthorized = useMemo(
     () => adminEmail && adminEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
@@ -113,49 +114,32 @@ const AdminPage = () => {
     return () => clearTimeout(timeout);
   }, [filter, adminToken]);
 
-  useEffect(() => {
-    if (adminToken || !GOOGLE_CLIENT_ID) {
-      return;
+  const handleNativeLogin = async () => {
+    setAuthError('');
+    setLoginLoading(true);
+    try {
+      const response = await axios.post(`${API}/admin/login`, {
+        email: loginEmail,
+        password: loginPassword,
+      });
+      const token = response.data?.token;
+      if (!token) {
+        setAuthError('Não foi possível autenticar.');
+        return;
+      }
+      localStorage.setItem(ADMIN_TOKEN_KEY, token);
+      setAdminToken(token);
+      const decoded = decodeJwt(token);
+      if (decoded?.email) {
+        setAdminEmail(decoded.email);
+      }
+    } catch (err) {
+      console.error('Erro ao autenticar:', err);
+      setAuthError('Email ou senha inválidos.');
+    } finally {
+      setLoginLoading(false);
     }
-    if (window.google?.accounts?.id) {
-      setScriptReady(true);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setScriptReady(true);
-    document.body.appendChild(script);
-  }, [adminToken]);
-
-  useEffect(() => {
-    if (!scriptReady || adminToken || !GOOGLE_CLIENT_ID) {
-      return;
-    }
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: (response) => {
-        const token = response.credential;
-        if (!token) {
-          setAuthError('Não foi possível autenticar.');
-          return;
-        }
-        localStorage.setItem(ADMIN_TOKEN_KEY, token);
-        setAdminToken(token);
-        const decoded = decodeJwt(token);
-        if (decoded?.email) {
-          setAdminEmail(decoded.email);
-        }
-      },
-    });
-    window.google.accounts.id.renderButton(document.getElementById('google-signin'), {
-      theme: 'outline',
-      size: 'large',
-      text: 'signin_with',
-      shape: 'pill',
-    });
-  }, [scriptReady, adminToken]);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-accent px-6 py-10">
@@ -259,19 +243,41 @@ const AdminPage = () => {
         ) : (
           <Card className="shadow-md">
             <CardHeader>
-              <CardTitle className="heading-font text-2xl">Entrar com login social</CardTitle>
+              <CardTitle className="heading-font text-2xl">Entrar na administração</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
                 Apenas o email {ADMIN_EMAIL} possui acesso a esta área.
               </p>
-              {!GOOGLE_CLIENT_ID ? (
-                <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  Configure a variável REACT_APP_GOOGLE_CLIENT_ID para habilitar o login social.
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <label htmlFor="admin-email" className="text-sm font-medium text-muted-foreground">
+                    Email de acesso
+                  </label>
+                  <Input
+                    id="admin-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={loginEmail}
+                    onChange={(event) => setLoginEmail(event.target.value)}
+                  />
                 </div>
-              ) : (
-                <div id="google-signin" />
-              )}
+                <div className="space-y-2">
+                  <label htmlFor="admin-password" className="text-sm font-medium text-muted-foreground">
+                    Senha
+                  </label>
+                  <Input
+                    id="admin-password"
+                    type="password"
+                    placeholder="Digite sua senha"
+                    value={loginPassword}
+                    onChange={(event) => setLoginPassword(event.target.value)}
+                  />
+                </div>
+                <Button onClick={handleNativeLogin} disabled={loginLoading}>
+                  {loginLoading ? 'Entrando...' : 'Entrar'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
