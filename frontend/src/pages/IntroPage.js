@@ -103,16 +103,6 @@ const IntroPage = () => {
               >
                 {role === 'orante' ? 'Entrar na Via Sacra' : 'Começar Via Sacra'}
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                className="min-h-[56px] px-12 text-lg"
-                onClick={() => navigate('/admin')}
-                data-testid="admin-button"
-              >
-                Acessar Área Administrativa
-              </Button>
             </div>
           </CardContent>
         </Card>
