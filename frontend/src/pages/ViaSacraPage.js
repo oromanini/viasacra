@@ -26,13 +26,19 @@ const ViaSacraPage = () => {
     const storedRoomId = searchParams.get('roomId') || localStorage.getItem('viaSacraRoomId');
     const storedRole = localStorage.getItem('viaSacraRole') || 'solo';
     const storedHostToken = localStorage.getItem('viaSacraHostToken');
+    const isHost = storedRole === 'host';
     if (storedRoomId) {
       setRoomId(storedRoomId);
       localStorage.setItem('viaSacraRoomId', storedRoomId);
     }
     setRole(storedRole);
-    setHostToken(storedHostToken);
-    if (stationParam >= 1 && stationParam <= 14) {
+    if (!isHost && storedHostToken) {
+      localStorage.removeItem('viaSacraHostToken');
+      setHostToken(null);
+    } else {
+      setHostToken(storedHostToken);
+    }
+    if (stationParam >= 1 && stationParam <= 14 && (isHost || !storedRoomId)) {
       setCurrentStation(stationParam);
     }
   }, [searchParams]);
