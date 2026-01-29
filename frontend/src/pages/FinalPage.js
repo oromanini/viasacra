@@ -12,7 +12,7 @@ A Igreja, como mãe, nos recorda que este exercício piedoso, vivido com fé e r
 
 Que esta graça nos ajude a carregar nossas cruzes com mais amor, a perdoar com mais generosidade e a viver como verdadeiros discípulos daquele que deu a vida por nós. Que os frutos desta caminhada permaneçam em nossos corações e se traduzam em caridade no dia a dia. ✝️`;
   const imageUrl =
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Christ_Carrying_the_Cross_%28El_Greco%29.jpg/1280px-Christ_Carrying_the_Cross_%28El_Greco%29.jpg';
+    'https://images.weserv.nl/?url=upload.wikimedia.org/wikipedia/commons/4/4a/El_Greco_-_Christ_Carrying_the_Cross_-_WGA07515.jpg&w=1200&fit=cover';
 
   const handleReturnHome = () => {
     navigate('/');
