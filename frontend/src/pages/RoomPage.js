@@ -213,6 +213,18 @@ const RoomPage = () => {
           </Card>
         </div>
 
+        <div className="flex flex-col items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-[48px] px-8 text-base"
+            onClick={() => navigate('/admin')}
+            data-testid="admin-button"
+          >
+            Acessar Área Administrativa
+          </Button>
+        </div>
+
         <div className="text-center text-sm text-muted-foreground">
           As salas ficam disponíveis por 24 horas após a criação.
         </div>

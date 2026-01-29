@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,7 +12,31 @@ A Igreja, como mãe, nos recorda que este exercício piedoso, vivido com fé e r
 
 Que esta graça nos ajude a carregar nossas cruzes com mais amor, a perdoar com mais generosidade e a viver como verdadeiros discípulos daquele que deu a vida por nós. Que os frutos desta caminhada permaneçam em nossos corações e se traduzam em caridade no dia a dia. ✝️`;
   const imageUrl =
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Christ_Carrying_the_Cross_%28El_Greco%29.jpg/1280px-Christ_Carrying_the_Cross_%28El_Greco%29.jpg';
+    'https://upload.wikimedia.org/wikipedia/commons/5/5d/Christ_Carrying_the_Cross_%28El_Greco%29.jpg';
+  const fallbackImageUrl =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+        <defs>
+          <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fff7ed"/>
+            <stop offset="100%" stop-color="#fde68a"/>
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="800" rx="48" fill="url(#bg)"/>
+        <g fill="none" stroke="#b45309" stroke-width="12" stroke-linecap="round">
+          <path d="M600 180v360" />
+          <path d="M470 320h260" />
+        </g>
+        <text x="600" y="560" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" fill="#7c2d12">
+          Cristo carregando a cruz
+        </text>
+        <text x="600" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#9a3412">
+          El Greco
+        </text>
+      </svg>
+    `);
+  const [imageSrc, setImageSrc] = useState(imageUrl);
 
   const handleReturnHome = () => {
     navigate('/');
@@ -45,9 +69,14 @@ Que esta graça nos ajude a carregar nossas cruzes com mais amor, a perdoar com 
             <figure className="space-y-3" data-testid="final-message-image">
               <div className="rounded-2xl border border-amber-200/70 bg-amber-50/60 p-4 shadow-sm">
                 <img
-                  src={imageUrl}
+                  src={imageSrc}
                   alt="Cristo carregando a cruz, de El Greco."
                   className="w-full rounded-lg border border-amber-200/80 shadow-sm"
+                  onError={() => {
+                    if (imageSrc !== fallbackImageUrl) {
+                      setImageSrc(fallbackImageUrl);
+                    }
+                  }}
                 />
               </div>
               <figcaption className="text-sm text-muted-foreground">
