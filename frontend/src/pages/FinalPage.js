@@ -1,44 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Cross, Home } from 'lucide-react';
-import axios from 'axios';
-
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
 
 const FinalPage = () => {
   const navigate = useNavigate();
-  const [prayers, setPrayers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const reflectionText = `Concluímos juntos este caminho sagrado da Via-Sacra, acompanhando Jesus em sua Paixão, Morte e entrega total por amor. Cada estação foi um convite à conversão, à gratidão e à esperança.
 
-  useEffect(() => {
-    const fetchFinalPrayers = async () => {
-      try {
-        const response = await axios.get(`${API}/final-prayers`);
-        setPrayers(response.data);
-      } catch (error) {
-        console.error('Error fetching final prayers:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+A Igreja, como mãe, nos recorda que este exercício piedoso, vivido com fé e recolhimento, pode nos conceder a indulgência plenária, sinal da infinita misericórdia de Deus, que deseja nos libertar não só do pecado, mas também de suas consequências.
 
-    fetchFinalPrayers();
-  }, []);
+Que esta graça nos ajude a carregar nossas cruzes com mais amor, a perdoar com mais generosidade e a viver como verdadeiros discípulos daquele que deu a vida por nós. Que os frutos desta caminhada permaneçam em nossos corações e se traduzam em caridade no dia a dia. ✝️`;
+  const imageUrl =
+    'https://upload.wikimedia.org/wikipedia/commons/4/4e/Titian_-_Christ_Carrying_the_Cross_-_WGA22813.jpg';
 
   const handleReturnHome = () => {
     navigate('/');
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-xl text-muted-foreground">Carregando...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen py-12 px-6" data-testid="final-page">
@@ -54,25 +32,30 @@ const FinalPage = () => {
             Via Sacra Concluída
           </h1>
           <p className="text-xl text-muted-foreground">
-            Orações Finais
+            Mensagem Final
           </p>
         </div>
 
-        {/* Final Prayers */}
-        <div className="space-y-8">
-          {prayers.map((prayer, index) => (
-            <Card key={index} className="shadow-lg border-border" data-testid={`final-prayer-${index}`}>
-              <CardContent className="p-8 md:p-12">
-                <h2 className="heading-font text-2xl font-bold text-primary mb-6" data-testid={`final-prayer-title-${index}`}>
-                  {prayer.title}
-                </h2>
-                <p className="text-lg leading-relaxed" data-testid={`final-prayer-text-${index}`}>
-                  {prayer.text}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* Final Message */}
+        <Card className="shadow-lg border-border" data-testid="final-message-card">
+          <CardContent className="p-8 md:p-12 space-y-8">
+            <div className="space-y-4 text-lg leading-relaxed whitespace-pre-line" data-testid="final-message-text">
+              {reflectionText}
+            </div>
+            <figure className="space-y-3" data-testid="final-message-image">
+              <div className="rounded-2xl border border-amber-200/70 bg-amber-50/60 p-4 shadow-sm">
+                <img
+                  src={imageUrl}
+                  alt="Cristo carregando a cruz, de Ticiano."
+                  className="w-full rounded-lg border border-amber-200/80 shadow-sm"
+                />
+              </div>
+              <figcaption className="text-sm text-muted-foreground">
+                🔹 Cristo carregando a cruz – Ticiano
+              </figcaption>
+            </figure>
+          </CardContent>
+        </Card>
 
         {/* Return button */}
         <div className="mt-12 text-center">

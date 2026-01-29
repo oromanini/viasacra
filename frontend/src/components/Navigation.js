@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 
 const Navigation = ({ currentStation, totalStations, onPrevious, onNext, allowNavigation = true }) => {
   const hasPrevious = currentStation > 1;
-  const hasNext = currentStation < totalStations;
+  const isLastStation = currentStation === totalStations;
 
   return (
     <div 
@@ -33,13 +33,13 @@ const Navigation = ({ currentStation, totalStations, onPrevious, onNext, allowNa
 
         <Button
           onClick={onNext}
-          disabled={!hasNext || !allowNavigation}
+          disabled={!allowNavigation}
           size="lg"
           className="min-h-[48px] flex-1 max-w-[200px] bg-primary hover:bg-primary/90"
-          data-testid="next-button"
+          data-testid={isLastStation ? "finish-button" : "next-button"}
         >
-          Próxima
-          <ChevronRight className="ml-2 h-5 w-5" />
+          {isLastStation ? "Finalizar" : "Próxima"}
+          {!isLastStation && <ChevronRight className="ml-2 h-5 w-5" />}
         </Button>
       </div>
     </div>
