@@ -9,9 +9,6 @@ const FinalPage = () => {
   const reflectionText = `Oração final a Jesus crucificado. — Eis-me aqui, ó meu bom e dulcíssimo Jesus! Humildemente prostrado de joelhos em vossa presença, peço e suplico-vos, com todo o fervor de minha alma, que vos digneis gravar em meu coração os mais vivos sentimentos de fé, esperança e caridade, de verdadeiro arrependimento de meus pecados, e um firme propósito de emendar-me, enquanto vou considerando, com vivo afeto e dor, as vossas cinco chagas, tendo presentes as palavras que já o profeta Davi punha em vossa boca, ó bom Jesus: “Transpassaram minhas mãos e os meus pés e contaram todos os meus ossos” (Sl 21, 17).
 
 A Nossa Senhora das Dores. — Ó Mãe das Dores, Rainha dos mártires, que tanto chorastes vosso Filho, morto para me salvar, alcançai-me uma verdadeira contrição dos meus pecados e uma sincera mudança de vida. Mãe, pela dor que experimentastes quando vosso divino Filho, no meio de tantos tormentos, inclinando a cabeça expirou à vossa vista sobre a cruz, eu vos suplico que me alcanceis uma boa morte. Por piedade, ó advogada dos pecadores, não deixeis de amparar a minha alma na aflição e no combate da terrível passagem desta vida à eternidade. E, como é possível que, neste momento, a palavra e a voz me faltem para pronunciar o vosso nome e o de Jesus, rogo-vos, desde já, a vós e a vosso divino Filho, que me socorrais nessa hora extrema, e assim direi: Jesus e Maria, entrego-vos a minha alma. Amém.`;
-  const imageUrl =
-    'https://images.weserv.nl/?url=upload.wikimedia.org/wikipedia/commons/4/4a/El_Greco_-_Christ_Carrying_the_Cross_-_WGA07515.jpg&w=1200&fit=cover';
-
   const handleReturnHome = () => {
     navigate('/?completed=1');
   };
@@ -38,18 +35,6 @@ A Nossa Senhora das Dores. — Ó Mãe das Dores, Rainha dos mártires, que tant
             <div className="space-y-4 text-lg leading-relaxed whitespace-pre-line" data-testid="final-message-text">
               {reflectionText}
             </div>
-            <figure className="space-y-3" data-testid="final-message-image">
-              <div className="rounded-2xl border border-amber-200/70 bg-amber-50/60 p-4 shadow-sm">
-                <img
-                  src={imageUrl}
-                  alt="Cristo carregando a cruz, de El Greco."
-                  className="w-full rounded-lg border border-amber-200/80 shadow-sm"
-                />
-              </div>
-              <figcaption className="text-sm text-muted-foreground">
-                🔹 Cristo carregando a cruz – El Greco
-              </figcaption>
-            </figure>
           </CardContent>
         </Card>
 
