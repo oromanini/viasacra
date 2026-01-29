@@ -6,16 +6,14 @@ import { Cross, Home } from 'lucide-react';
 
 const FinalPage = () => {
   const navigate = useNavigate();
-  const reflectionText = `Concluímos juntos este caminho sagrado da Via-Sacra, acompanhando Jesus em sua Paixão, Morte e entrega total por amor. Cada estação foi um convite à conversão, à gratidão e à esperança.
+  const reflectionText = `Oração final a Jesus crucificado. — Eis-me aqui, ó meu bom e dulcíssimo Jesus! Humildemente prostrado de joelhos em vossa presença, peço e suplico-vos, com todo o fervor de minha alma, que vos digneis gravar em meu coração os mais vivos sentimentos de fé, esperança e caridade, de verdadeiro arrependimento de meus pecados, e um firme propósito de emendar-me, enquanto vou considerando, com vivo afeto e dor, as vossas cinco chagas, tendo presentes as palavras que já o profeta Davi punha em vossa boca, ó bom Jesus: “Transpassaram minhas mãos e os meus pés e contaram todos os meus ossos” (Sl 21, 17).
 
-A Igreja, como mãe, nos recorda que este exercício piedoso, vivido com fé e recolhimento, pode nos conceder a indulgência plenária, sinal da infinita misericórdia de Deus, que deseja nos libertar não só do pecado, mas também de suas consequências.
-
-Que esta graça nos ajude a carregar nossas cruzes com mais amor, a perdoar com mais generosidade e a viver como verdadeiros discípulos daquele que deu a vida por nós. Que os frutos desta caminhada permaneçam em nossos corações e se traduzam em caridade no dia a dia. ✝️`;
+A Nossa Senhora das Dores. — Ó Mãe das Dores, Rainha dos mártires, que tanto chorastes vosso Filho, morto para me salvar, alcançai-me uma verdadeira contrição dos meus pecados e uma sincera mudança de vida. Mãe, pela dor que experimentastes quando vosso divino Filho, no meio de tantos tormentos, inclinando a cabeça expirou à vossa vista sobre a cruz, eu vos suplico que me alcanceis uma boa morte. Por piedade, ó advogada dos pecadores, não deixeis de amparar a minha alma na aflição e no combate da terrível passagem desta vida à eternidade. E, como é possível que, neste momento, a palavra e a voz me faltem para pronunciar o vosso nome e o de Jesus, rogo-vos, desde já, a vós e a vosso divino Filho, que me socorrais nessa hora extrema, e assim direi: Jesus e Maria, entrego-vos a minha alma. Amém.`;
   const imageUrl =
     'https://images.weserv.nl/?url=upload.wikimedia.org/wikipedia/commons/4/4a/El_Greco_-_Christ_Carrying_the_Cross_-_WGA07515.jpg&w=1200&fit=cover';
 
   const handleReturnHome = () => {
-    navigate('/');
+    navigate('/?completed=1');
   };
 
   return (
@@ -31,9 +29,7 @@ Que esta graça nos ajude a carregar nossas cruzes com mais amor, a perdoar com 
           <h1 className="heading-font text-4xl md:text-5xl font-bold text-primary mb-4" data-testid="final-title">
             Via Sacra Concluída
           </h1>
-          <p className="text-xl text-muted-foreground">
-            Mensagem Final
-          </p>
+          <p className="text-xl text-muted-foreground">Orações finais</p>
         </div>
 
         {/* Final Message */}
@@ -67,7 +63,7 @@ Que esta graça nos ajude a carregar nossas cruzes com mais amor, a perdoar com 
             data-testid="return-home-button"
           >
             <Home className="mr-2 h-5 w-5" />
-            Voltar ao Início
+            Concluir orações e voltar ao início
           </Button>
         </div>
       </div>
