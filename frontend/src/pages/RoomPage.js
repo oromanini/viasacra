@@ -1,16 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const RoomPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [rooms, setRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [createName, setCreateName] = useState('');
@@ -18,6 +28,8 @@ const RoomPage = () => {
   const [joinRoomId, setJoinRoomId] = useState('');
   const [joinPassword, setJoinPassword] = useState('');
   const [error, setError] = useState('');
+  const [duplicateNameOpen, setDuplicateNameOpen] = useState(false);
+  const [roomClosedOpen, setRoomClosedOpen] = useState(false);
 
   const loadRooms = async () => {
     setLoadingRooms(true);
@@ -35,6 +47,12 @@ const RoomPage = () => {
     loadRooms();
   }, []);
 
+  useEffect(() => {
+    if (searchParams.get('roomClosed') === '1') {
+      setRoomClosedOpen(true);
+    }
+  }, [searchParams]);
+
   const handleCreate = async (event) => {
     event.preventDefault();
     setError('');
@@ -50,7 +68,11 @@ const RoomPage = () => {
       navigate(`/intro?roomId=${roomId}`);
     } catch (err) {
       console.error('Erro ao criar sala:', err);
-      setError('Não foi possível criar a sala. Verifique os dados.');
+      if (err.response?.status === 409) {
+        setDuplicateNameOpen(true);
+      } else {
+        setError('Não foi possível criar a sala. Verifique os dados.');
+      }
     }
   };
 
@@ -139,7 +161,7 @@ const RoomPage = () => {
               ) : (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Salas disponíveis:</p>
-                  <div className="max-h-[252px] space-y-2 overflow-y-scroll pr-2">
+                  <div className="max-h-[160px] space-y-2 overflow-y-scroll pr-2">
                     {rooms.map((room) => (
                       <button
                         key={room.room_id}
@@ -183,7 +205,7 @@ const RoomPage = () => {
                     required
                   />
                 </div>
-                <Button type="submit" variant="outline" className="w-full">
+                <Button type="submit" className="w-full bg-purple-600 text-white hover:bg-purple-700">
                   Entrar como orante
                 </Button>
               </form>
@@ -195,6 +217,44 @@ const RoomPage = () => {
           As salas ficam disponíveis por 24 horas após a criação.
         </div>
       </div>
+
+      <AlertDialog open={duplicateNameOpen} onOpenChange={setDuplicateNameOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Nome de sala já existe</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esse nome de sala já existe, escolha outro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Entendi</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={roomClosedOpen}
+        onOpenChange={(open) => {
+          setRoomClosedOpen(open);
+          if (!open && searchParams.get('roomClosed') === '1') {
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.delete('roomClosed');
+            setSearchParams(nextParams, { replace: true });
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sala encerrada</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você deve iniciar uma nova sala.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>Ok</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Header, Depends
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,12 +6,14 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import List, Optional
 import json
 from datetime import datetime, timedelta, timezone
 import hashlib
 import uuid
 import asyncio
+import requests
+import re
 
 
 ROOT_DIR = Path(__file__).parent
@@ -81,6 +83,17 @@ class RoomListItem(BaseModel):
     expires_at: datetime
 
 
+class AdminRoomListItem(BaseModel):
+    room_id: str
+    name: str
+    password: str
+    participant_count: int
+    active: bool
+    current_station: int
+    created_at: datetime
+    expires_at: datetime
+
+
 # Initialize database with Via Sacra data
 async def init_db():
     try:
@@ -117,6 +130,9 @@ async def init_db():
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
+def normalize_room_name(name: str) -> str:
+    return " ".join(name.split()).strip().lower()
+
 async def expire_rooms_if_needed():
     now = datetime.now(timezone.utc)
     await db.rooms.update_many(
@@ -142,6 +158,30 @@ def ensure_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
+
+def verify_google_token(token: str) -> str:
+    response = requests.get(
+        "https://oauth2.googleapis.com/tokeninfo",
+        params={"id_token": token},
+        timeout=5,
+    )
+    if response.status_code != 200:
+        raise HTTPException(status_code=401, detail="Token inválido.")
+    data = response.json()
+    email = data.get("email")
+    if not email or str(data.get("email_verified")).lower() != "true":
+        raise HTTPException(status_code=401, detail="Email não verificado.")
+    return email
+
+async def require_admin(authorization: Optional[str] = Header(None)) -> str:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Credenciais ausentes.")
+    token = authorization.split(" ", 1)[1]
+    email = await asyncio.to_thread(verify_google_token, token)
+    allowed_email = os.environ.get("ADMIN_ALLOWED_EMAIL", "oscar.romanini.jr@gmail.com")
+    if email.lower() != allowed_email.lower():
+        raise HTTPException(status_code=403, detail="Acesso não autorizado.")
+    return email
 
 
 # API Routes
@@ -190,18 +230,36 @@ async def list_rooms():
 @api_router.post("/rooms", response_model=RoomCreatedResponse)
 async def create_room(room: RoomCreateRequest):
     now = datetime.now(timezone.utc)
+    await expire_rooms_if_needed()
+    name = room.name.strip()
+    normalized_name = normalize_room_name(name)
+    existing_room = await db.rooms.find_one(
+        {
+            "active": True,
+            "$or": [
+                {"name_normalized": normalized_name},
+                {"name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}},
+            ],
+        },
+        {"_id": 1},
+    )
+    if existing_room:
+        raise HTTPException(status_code=409, detail="Esse nome de sala já existe.")
     room_id = str(uuid.uuid4())
     expires_at = now + timedelta(hours=24)
     host_token = str(uuid.uuid4())
 
     new_room = {
         "room_id": room_id,
-        "name": room.name.strip(),
+        "name": name,
+        "name_normalized": normalized_name,
+        "password_plain": room.password,
         "password_hash": hash_password(room.password),
         "created_at": now,
         "expires_at": expires_at,
         "active": True,
         "current_station": 1,
+        "participant_count": 1,
         "host_token": host_token,
     }
     await db.rooms.insert_one(new_room)
@@ -230,6 +288,10 @@ async def join_room(payload: RoomJoinRequest):
         raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
     if hash_password(payload.password) != room["password_hash"]:
         raise HTTPException(status_code=401, detail="Senha incorreta.")
+    await db.rooms.update_one(
+        {"room_id": payload.room_id},
+        {"$inc": {"participant_count": 1}},
+    )
     return room_to_info(room)
 
 @api_router.get("/rooms/{room_id}", response_model=RoomInfo)
@@ -266,6 +328,53 @@ async def update_room_station(room_id: str, payload: RoomStationUpdate):
     )
     room["current_station"] = payload.station
     return room_to_info(room)
+
+@api_router.get("/admin/rooms", response_model=List[AdminRoomListItem])
+async def list_admin_rooms(name: Optional[str] = None, _: str = Depends(require_admin)):
+    await expire_rooms_if_needed()
+    query = {}
+    if name:
+        query["name"] = {"$regex": name, "$options": "i"}
+    rooms = await db.rooms.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    result = []
+    for room in rooms:
+        room["created_at"] = ensure_utc(room["created_at"])
+        room["expires_at"] = ensure_utc(room["expires_at"])
+        result.append(
+            AdminRoomListItem(
+                room_id=room["room_id"],
+                name=room["name"],
+                password=room.get("password_plain", ""),
+                participant_count=room.get("participant_count", 0),
+                active=room.get("active", False),
+                current_station=room.get("current_station", 1),
+                created_at=room["created_at"],
+                expires_at=room["expires_at"],
+            )
+        )
+    return result
+
+@api_router.patch("/admin/rooms/{room_id}/deactivate", response_model=AdminRoomListItem)
+async def deactivate_room(room_id: str, _: str = Depends(require_admin)):
+    await db.rooms.update_one(
+        {"room_id": room_id},
+        {"$set": {"active": False, "deactivated_at": datetime.now(timezone.utc)}},
+    )
+    room = await db.rooms.find_one({"room_id": room_id}, {"_id": 0})
+    if not room:
+        raise HTTPException(status_code=404, detail="Sala não encontrada.")
+    room["created_at"] = ensure_utc(room["created_at"])
+    room["expires_at"] = ensure_utc(room["expires_at"])
+    return AdminRoomListItem(
+        room_id=room["room_id"],
+        name=room["name"],
+        password=room.get("password_plain", ""),
+        participant_count=room.get("participant_count", 0),
+        active=room.get("active", False),
+        current_station=room.get("current_station", 1),
+        created_at=room["created_at"],
+        expires_at=room["expires_at"],
+    )
 
 
 # Include the router in the main app

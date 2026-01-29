@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import ViaMap from '@/components/ViaMap';
@@ -18,6 +18,7 @@ const ViaSacraPage = () => {
   const [role, setRole] = useState('solo');
   const [hostToken, setHostToken] = useState(null);
   const [syncMessage, setSyncMessage] = useState('');
+  const redirectingRef = useRef(false);
 
   // Get station from URL
   useEffect(() => {
@@ -50,9 +51,17 @@ const ViaSacraPage = () => {
       }
     } catch (error) {
       console.error('Erro ao sincronizar sala:', error);
+      if (!redirectingRef.current && error.response?.status === 404) {
+        redirectingRef.current = true;
+        localStorage.removeItem('viaSacraRoomId');
+        localStorage.removeItem('viaSacraRole');
+        localStorage.removeItem('viaSacraHostToken');
+        navigate('/?roomClosed=1', { replace: true });
+        return;
+      }
       setSyncMessage('Sala expirada ou indisponível.');
     }
-  }, [roomId, role, setSearchParams]);
+  }, [roomId, role, setSearchParams, navigate]);
 
   useEffect(() => {
     if (!roomId) {

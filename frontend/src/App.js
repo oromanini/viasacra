@@ -4,6 +4,7 @@ import RoomPage from "@/pages/RoomPage";
 import IntroPage from "@/pages/IntroPage";
 import ViaSacraPage from "@/pages/ViaSacraPage";
 import FinalPage from "@/pages/FinalPage";
+import AdminPage from "@/pages/AdminPage";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/intro" element={<IntroPage />} />
           <Route path="/via-sacra" element={<ViaSacraPage />} />
           <Route path="/final" element={<FinalPage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </BrowserRouter>
     </div>
