@@ -10,10 +10,13 @@ from typing import List, Optional
 import json
 from datetime import datetime, timedelta, timezone
 import hashlib
+import secrets
 import uuid
 import asyncio
-import requests
+import jwt
+from jwt import PyJWTError
 import re
+from passlib.context import CryptContext
 
 
 ROOT_DIR = Path(__file__).parent
@@ -94,6 +97,16 @@ class AdminRoomListItem(BaseModel):
     expires_at: datetime
 
 
+class AdminLoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AdminLoginResponse(BaseModel):
+    email: str
+    token: str
+
+
 # Initialize database with Via Sacra data
 async def init_db():
     try:
@@ -159,26 +172,55 @@ def ensure_utc(value: datetime) -> datetime:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
 
-def verify_google_token(token: str) -> str:
-    response = requests.get(
-        "https://oauth2.googleapis.com/tokeninfo",
-        params={"id_token": token},
-        timeout=5,
-    )
-    if response.status_code != 200:
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def _admin_allowed_email() -> str:
+    return os.environ.get("ADMIN_ALLOWED_EMAIL", "oscar.romanini.jr@gmail.com")
+
+
+def _admin_jwt_secret() -> str:
+    return os.environ.get("ADMIN_JWT_SECRET", "dev-secret")
+
+
+def verify_admin_password(password: str) -> None:
+    password_hash = os.environ.get("ADMIN_PASSWORD_HASH")
+    password_plain = os.environ.get("ADMIN_PASSWORD")
+    if password_hash:
+        if not pwd_context.verify(password, password_hash):
+            raise HTTPException(status_code=401, detail="Credenciais inválidas.")
+        return
+    if password_plain:
+        if not secrets.compare_digest(password, password_plain):
+            raise HTTPException(status_code=401, detail="Credenciais inválidas.")
+        return
+    raise HTTPException(status_code=500, detail="Senha de admin não configurada.")
+
+
+def create_admin_token(email: str) -> str:
+    payload = {
+        "email": email,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=8),
+    }
+    return jwt.encode(payload, _admin_jwt_secret(), algorithm="HS256")
+
+
+def decode_admin_token(token: str) -> str:
+    try:
+        payload = jwt.decode(token, _admin_jwt_secret(), algorithms=["HS256"])
+    except PyJWTError as exc:
+        raise HTTPException(status_code=401, detail="Token inválido.") from exc
+    email = payload.get("email")
+    if not email:
         raise HTTPException(status_code=401, detail="Token inválido.")
-    data = response.json()
-    email = data.get("email")
-    if not email or str(data.get("email_verified")).lower() != "true":
-        raise HTTPException(status_code=401, detail="Email não verificado.")
     return email
 
 async def require_admin(authorization: Optional[str] = Header(None)) -> str:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Credenciais ausentes.")
     token = authorization.split(" ", 1)[1]
-    email = await asyncio.to_thread(verify_google_token, token)
-    allowed_email = os.environ.get("ADMIN_ALLOWED_EMAIL", "oscar.romanini.jr@gmail.com")
+    email = decode_admin_token(token)
+    allowed_email = _admin_allowed_email()
     if email.lower() != allowed_email.lower():
         raise HTTPException(status_code=403, detail="Acesso não autorizado.")
     return email
@@ -215,6 +257,15 @@ async def get_station(station_id: int):
 async def get_final_prayers():
     prayers = await db.final_prayers.find({}, {"_id": 0}).to_list(10)
     return prayers
+
+@api_router.post("/admin/login", response_model=AdminLoginResponse)
+async def admin_login(payload: AdminLoginRequest):
+    allowed_email = _admin_allowed_email()
+    if payload.email.lower() != allowed_email.lower():
+        raise HTTPException(status_code=401, detail="Credenciais inválidas.")
+    await asyncio.to_thread(verify_admin_password, payload.password)
+    token = create_admin_token(payload.email)
+    return AdminLoginResponse(email=payload.email, token=token)
 
 @api_router.get("/rooms", response_model=List[RoomListItem])
 async def list_rooms():
