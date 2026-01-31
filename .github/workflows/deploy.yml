@@ -1,0 +1,49 @@
+name: Deploy Via Sacra
+
+on:
+  push:
+    branches:
+      - main # Dispara o deploy quando houver código novo na main
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  BACKEND_URL: https://viasacra-backend-765087048572.us-central1.run.app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Autenticar no Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Configurar Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # --- DEPLOY BACKEND ---
+      - name: Deploy Backend
+        run: |
+          gcloud run deploy viasacra-backend \
+            --source ./backend \
+            --region ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }} \
+            --allow-unauthenticated \
+            --port 8000 \
+            --set-env-vars="MONGO_URL=${{ secrets.MONGO_URI }},DB_NAME=viasacra,CORS_ORIGINS=*"
+
+      # --- DEPLOY FRONTEND ---
+      - name: Deploy Frontend
+        run: |
+          gcloud run deploy viasacra-frontend \
+            --source ./frontend \
+            --region ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }} \
+            --allow-unauthenticated \
+            --port 3000 \
+            --set-env-vars="REACT_APP_BACKEND_URL=${{ env.BACKEND_URL }},WDS_SOCKET_PORT=0"
