@@ -17,10 +17,10 @@ const Navigation = ({ currentStation, totalStations, onPrevious, onNext, allowNa
           disabled={!hasPrevious || !allowNavigation}
           variant="outline"
           size="lg"
-          className="min-h-[48px] flex-1 max-w-[200px]"
+          className="min-h-[40px] flex-1 max-w-[140px] px-3 text-sm sm:min-h-[48px] sm:max-w-[200px] sm:px-8 sm:text-base"
           data-testid="previous-button"
         >
-          <ChevronLeft className="mr-2 h-5 w-5" />
+          <ChevronLeft className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
           Anterior
         </Button>
 
@@ -35,11 +35,11 @@ const Navigation = ({ currentStation, totalStations, onPrevious, onNext, allowNa
           onClick={onNext}
           disabled={!allowNavigation}
           size="lg"
-          className="min-h-[48px] flex-1 max-w-[200px] bg-primary hover:bg-primary/90"
+          className="min-h-[40px] flex-1 max-w-[140px] bg-primary px-3 text-sm hover:bg-primary/90 sm:min-h-[48px] sm:max-w-[200px] sm:px-8 sm:text-base"
           data-testid={isLastStation ? "finish-button" : "next-button"}
         >
           {isLastStation ? "Finalizar" : "Próxima"}
-          {!isLastStation && <ChevronRight className="ml-2 h-5 w-5" />}
+          {!isLastStation && <ChevronRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />}
         </Button>
       </div>
     </div>
