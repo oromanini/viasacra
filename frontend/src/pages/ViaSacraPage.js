@@ -136,6 +136,15 @@ const ViaSacraPage = () => {
       }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
+      if (roomId && role === 'host') {
+        try {
+          await axios.patch(`${API}/rooms/${roomId}/complete`, {
+            host_token: hostToken,
+          });
+        } catch (error) {
+          console.error('Erro ao concluir a sala:', error);
+        }
+      }
       navigate('/final');
     }
   };
