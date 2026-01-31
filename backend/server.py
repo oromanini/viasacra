@@ -71,6 +71,9 @@ class RoomStationUpdate(BaseModel):
     station: int = Field(..., ge=1, le=14)
     host_token: str
 
+class RoomCompleteRequest(BaseModel):
+    host_token: str
+
 class RoomInfo(BaseModel):
     room_id: str
     name: str
@@ -378,6 +381,24 @@ async def update_room_station(room_id: str, payload: RoomStationUpdate):
         {"$set": {"current_station": payload.station}},
     )
     room["current_station"] = payload.station
+    return room_to_info(room)
+
+@api_router.patch("/rooms/{room_id}/complete", response_model=RoomInfo)
+async def complete_room(room_id: str, payload: RoomCompleteRequest):
+    await expire_rooms_if_needed()
+    room = await db.rooms.find_one(
+        {"room_id": room_id, "active": True},
+        {"_id": 0},
+    )
+    if not room:
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    if room["host_token"] != payload.host_token:
+        raise HTTPException(status_code=403, detail="Apenas o anfitrião pode concluir.")
+    await db.rooms.update_one(
+        {"room_id": room_id},
+        {"$set": {"active": False, "completed_at": datetime.now(timezone.utc)}},
+    )
+    room["active"] = False
     return room_to_info(room)
 
 @api_router.get("/admin/rooms", response_model=List[AdminRoomListItem])
