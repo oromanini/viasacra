@@ -171,8 +171,12 @@ const ViaSacraPage = () => {
               </div>
             )}
             {loading ? (
-              <div className="flex items-center justify-center min-h-[400px]">
-                <p className="text-xl text-muted-foreground">Carregando estação...</p>
+              <div className="flex min-h-[400px] items-center justify-center">
+                <div
+                  className="h-12 w-12 animate-spin rounded-full border-4 border-purple-500 border-t-transparent"
+                  aria-label="Carregando"
+                  role="status"
+                />
               </div>
             ) : (
               <StationCard station={stationData} />
