@@ -35,7 +35,7 @@ jobs:
             --project ${{ env.PROJECT_ID }} \
             --allow-unauthenticated \
             --port 8000 \
-            --set-env-vars="MONGO_URL=${{ secrets.MONGO_URI }},DB_NAME=viasacra,CORS_ORIGINS=*"
+            --set-env-vars="MONGO_URL=${{ secrets.MONGO_URI }},DB_NAME=viasacra,CORS_ORIGINS=*,ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}"
 
       # --- DEPLOY FRONTEND ---
       - name: Deploy Frontend
