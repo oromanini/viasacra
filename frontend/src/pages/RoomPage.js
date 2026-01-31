@@ -21,32 +21,16 @@ const API = `${BACKEND_URL}/api`;
 const RoomPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [rooms, setRooms] = useState([]);
-  const [loadingRooms, setLoadingRooms] = useState(true);
   const [createName, setCreateName] = useState('');
   const [createPassword, setCreatePassword] = useState('');
+  const [joinFirstName, setJoinFirstName] = useState('');
+  const [joinLastName, setJoinLastName] = useState('');
   const [joinRoomId, setJoinRoomId] = useState('');
   const [joinPassword, setJoinPassword] = useState('');
   const [error, setError] = useState('');
   const [duplicateNameOpen, setDuplicateNameOpen] = useState(false);
   const [roomClosedOpen, setRoomClosedOpen] = useState(false);
   const [completedOpen, setCompletedOpen] = useState(false);
-
-  const loadRooms = async () => {
-    setLoadingRooms(true);
-    try {
-      const response = await axios.get(`${API}/rooms`);
-      setRooms(response.data);
-    } catch (err) {
-      console.error('Erro ao carregar salas:', err);
-    } finally {
-      setLoadingRooms(false);
-    }
-  };
-
-  useEffect(() => {
-    loadRooms();
-  }, []);
 
   useEffect(() => {
     if (searchParams.get('roomClosed') === '1') {
@@ -90,11 +74,14 @@ const RoomPage = () => {
       const response = await axios.post(`${API}/rooms/join`, {
         room_id: joinRoomId,
         password: joinPassword,
+        first_name: joinFirstName,
+        last_name: joinLastName,
       });
       const { room_id: roomId } = response.data;
       localStorage.setItem('viaSacraRoomId', roomId);
       localStorage.setItem('viaSacraRole', 'orante');
       localStorage.removeItem('viaSacraHostToken');
+      localStorage.setItem('viaSacraParticipantName', `${joinFirstName} ${joinLastName}`.trim());
       navigate(`/intro?roomId=${roomId}`);
     } catch (err) {
       console.error('Erro ao entrar na sala:', err);
@@ -171,43 +158,34 @@ const RoomPage = () => {
               <CardTitle className="heading-font text-2xl">Entrar em sala</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {loadingRooms ? (
-                <p className="text-sm text-muted-foreground">Carregando salas ativas...</p>
-              ) : rooms.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Nenhuma sala ativa no momento. Crie a primeira!
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Salas disponíveis:</p>
-                  <div className="max-h-[160px] space-y-2 overflow-y-scroll pr-2">
-                    {rooms.map((room) => (
-                      <button
-                        key={room.room_id}
-                        type="button"
-                        onClick={() => setJoinRoomId(room.room_id)}
-                        className={`w-full rounded-lg border px-4 py-3 text-left transition ${
-                          joinRoomId === room.room_id
-                            ? 'border-primary bg-primary/10'
-                            : 'border-border bg-card hover:border-primary/60'
-                        }`}
-                      >
-                        <div className="font-medium text-primary">{room.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Expira em {new Date(room.expires_at).toLocaleString('pt-BR')}
-                        </div>
-                      </button>
-                    ))}
+              <form onSubmit={handleJoin} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="join-first-name">Nome</Label>
+                    <Input
+                      id="join-first-name"
+                      placeholder="Seu nome"
+                      value={joinFirstName}
+                      onChange={(event) => setJoinFirstName(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="join-last-name">Sobrenome</Label>
+                    <Input
+                      id="join-last-name"
+                      placeholder="Seu sobrenome"
+                      value={joinLastName}
+                      onChange={(event) => setJoinLastName(event.target.value)}
+                      required
+                    />
                   </div>
                 </div>
-              )}
-
-              <form onSubmit={handleJoin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="join-room-id">Código da sala</Label>
                   <Input
                     id="join-room-id"
-                    placeholder="Selecione acima ou cole o código"
+                    placeholder="Digite o código da sala"
                     value={joinRoomId}
                     onChange={(event) => setJoinRoomId(event.target.value)}
                     required

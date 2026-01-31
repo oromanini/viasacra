@@ -4,6 +4,15 @@ import axios from 'axios';
 import ViaMap from '@/components/ViaMap';
 import StationCard from '@/components/StationCard';
 import Navigation from '@/components/Navigation';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from '@/components/ui/sonner';
+import { Info, Share2 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -18,7 +27,11 @@ const ViaSacraPage = () => {
   const [role, setRole] = useState('solo');
   const [hostToken, setHostToken] = useState(null);
   const [syncMessage, setSyncMessage] = useState('');
+  const [participants, setParticipants] = useState([]);
+  const [participantsOpen, setParticipantsOpen] = useState(false);
   const redirectingRef = useRef(false);
+  const previousParticipantsRef = useRef([]);
+  const initialParticipantsLoadedRef = useRef(false);
 
   // Get station from URL
   useEffect(() => {
@@ -50,11 +63,33 @@ const ViaSacraPage = () => {
     try {
       const response = await axios.get(`${API}/rooms/${roomId}`);
       const station = response.data.current_station || 1;
+      const incomingParticipants = response.data.participants || [];
       setSyncMessage('');
       if (role !== 'host') {
         setCurrentStation(station);
         setSearchParams({ station, roomId });
       }
+      if (!initialParticipantsLoadedRef.current) {
+        previousParticipantsRef.current = incomingParticipants;
+        initialParticipantsLoadedRef.current = true;
+      } else {
+        const previousNames = new Set(
+          (previousParticipantsRef.current || []).map((participant) => participant.name),
+        );
+        const incomingNames = new Set(incomingParticipants.map((participant) => participant.name));
+        incomingParticipants.forEach((participant) => {
+          if (!previousNames.has(participant.name)) {
+            toast(`${participant.name} entrou`);
+          }
+        });
+        previousParticipantsRef.current.forEach((participant) => {
+          if (!incomingNames.has(participant.name)) {
+            toast(`${participant.name} saiu`);
+          }
+        });
+        previousParticipantsRef.current = incomingParticipants;
+      }
+      setParticipants(incomingParticipants);
     } catch (error) {
       console.error('Erro ao sincronizar sala:', error);
       if (!redirectingRef.current && error.response?.status === 404) {
@@ -77,6 +112,44 @@ const ViaSacraPage = () => {
     const interval = setInterval(fetchRoomStation, 5000);
     return () => clearInterval(interval);
   }, [roomId, fetchRoomStation]);
+
+  useEffect(() => {
+    if (!roomId) {
+      return undefined;
+    }
+    const participantName = localStorage.getItem('viaSacraParticipantName');
+    if (!participantName) {
+      return undefined;
+    }
+    const leaveUrl = `${API}/rooms/${roomId}/leave`;
+    const sendLeave = () => {
+      const payload = JSON.stringify({ name: participantName });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(leaveUrl, new Blob([payload], { type: 'application/json' }));
+      } else {
+        axios.post(leaveUrl, { name: participantName });
+      }
+    };
+    const handleBeforeUnload = () => sendLeave();
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      sendLeave();
+    };
+  }, [roomId]);
+
+  const handleShareRoom = async () => {
+    if (!roomId) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(roomId);
+      toast('Código da sala copiado');
+    } catch (error) {
+      console.error('Erro ao copiar o código da sala:', error);
+      toast('Não foi possível copiar o código');
+    }
+  };
 
   // Fetch station data
   useEffect(() => {
@@ -150,7 +223,31 @@ const ViaSacraPage = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden pb-24 md:pb-0" data-testid="via-sacra-page">
+    <div className="relative h-screen overflow-hidden pb-24 md:pb-0" data-testid="via-sacra-page">
+      {roomId && (
+        <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground"
+            onClick={() => setParticipantsOpen(true)}
+            aria-label="Ver participantes"
+          >
+            <Info className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground"
+            onClick={handleShareRoom}
+            aria-label="Compartilhar código da sala"
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
       <div className="flex h-full flex-col md:flex-row">
         {/* Map column */}
         <div className="bg-card border-b md:border-b-0 md:border-r border-border shadow-md md:shadow-none md:w-[35%] lg:w-[30%]">
@@ -202,6 +299,28 @@ const ViaSacraPage = () => {
         onNext={handleNext}
         allowNavigation={!roomId || role === 'host'}
       />
+
+      <Dialog open={participantsOpen} onOpenChange={setParticipantsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Participantes</DialogTitle>
+          </DialogHeader>
+          {participants.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum participante ainda.</p>
+          ) : (
+            <ul className="space-y-2">
+              {participants.map((participant) => (
+                <li
+                  key={`${participant.name}-${participant.joined_at}`}
+                  className="text-sm text-foreground"
+                >
+                  {participant.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
