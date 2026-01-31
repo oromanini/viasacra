@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Home } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -21,6 +23,7 @@ const decodeJwt = (token) => {
 };
 
 const AdminPage = () => {
+  const navigate = useNavigate();
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem(ADMIN_TOKEN_KEY) || '');
   const [adminEmail, setAdminEmail] = useState('');
   const [rooms, setRooms] = useState([]);
@@ -141,12 +144,27 @@ const AdminPage = () => {
     }
   };
 
+  const handleReturnHome = () => {
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-accent px-6 py-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
-        <header className="text-center">
-          <h1 className="heading-font text-4xl font-bold text-primary">Administração de Salas</h1>
-          <p className="mt-2 text-muted-foreground">Gerencie salas ativas e acompanhe o andamento.</p>
+        <header className="flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
+          <div>
+            <h1 className="heading-font text-4xl font-bold text-primary">Administração de Salas</h1>
+            <p className="mt-2 text-muted-foreground">Gerencie salas ativas e acompanhe o andamento.</p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Voltar para a página inicial"
+            onClick={handleReturnHome}
+          >
+            <Home className="h-5 w-5" />
+          </Button>
         </header>
 
         {authError && (
