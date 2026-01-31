@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Lock } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -103,10 +104,13 @@ const RoomPage = () => {
             <Button
               type="button"
               variant="outline"
+              size="icon"
               onClick={() => navigate('/admin')}
               data-testid="admin-button"
+              aria-label="Área Administrativa"
             >
-              Área Administrativa
+              <Lock className="h-4 w-4" aria-hidden="true" />
+              <span className="sr-only">Área Administrativa</span>
             </Button>
           </div>
         </header>

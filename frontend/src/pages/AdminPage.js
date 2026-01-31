@@ -257,7 +257,6 @@ const AdminPage = () => {
                   <Input
                     id="admin-email"
                     type="email"
-                    placeholder="seu@email.com"
                     value={loginEmail}
                     onChange={(event) => setLoginEmail(event.target.value)}
                   />
