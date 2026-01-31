@@ -23,6 +23,8 @@ const RoomPage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [createName, setCreateName] = useState('');
+  const [createFirstName, setCreateFirstName] = useState('');
+  const [createLastName, setCreateLastName] = useState('');
   const [createPassword, setCreatePassword] = useState('');
   const [joinFirstName, setJoinFirstName] = useState('');
   const [joinLastName, setJoinLastName] = useState('');
@@ -52,6 +54,8 @@ const RoomPage = () => {
       const response = await axios.post(`${API}/rooms`, {
         name: createName,
         password: createPassword,
+        first_name: createFirstName,
+        last_name: createLastName,
       });
       const { room_id: roomId, host_token: hostToken } = response.data;
       localStorage.setItem('viaSacraRoomId', roomId);
@@ -137,6 +141,28 @@ const RoomPage = () => {
                     onChange={(event) => setCreateName(event.target.value)}
                     required
                   />
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="create-first-name">Nome</Label>
+                    <Input
+                      id="create-first-name"
+                      placeholder="Seu nome"
+                      value={createFirstName}
+                      onChange={(event) => setCreateFirstName(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="create-last-name">Sobrenome</Label>
+                    <Input
+                      id="create-last-name"
+                      placeholder="Seu sobrenome"
+                      value={createLastName}
+                      onChange={(event) => setCreateLastName(event.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="room-password">Senha</Label>

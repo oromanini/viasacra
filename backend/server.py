@@ -62,6 +62,8 @@ class FinalPrayer(BaseModel):
 class RoomCreateRequest(BaseModel):
     name: str = Field(..., min_length=1)
     password: str = Field(..., min_length=4)
+    first_name: str = Field(..., min_length=1)
+    last_name: str = Field(..., min_length=1)
 
 class RoomJoinRequest(BaseModel):
     room_id: str
@@ -82,6 +84,7 @@ class RoomCompleteRequest(BaseModel):
 class ParticipantInfo(BaseModel):
     name: str
     joined_at: datetime
+    is_host: bool = False
 
 class RoomInfo(BaseModel):
     room_id: str
@@ -177,7 +180,11 @@ async def expire_rooms_loop():
 def room_to_info(room) -> RoomInfo:
     expires_at = ensure_utc(room["expires_at"])
     participants = [
-        ParticipantInfo(name=participant["name"], joined_at=ensure_utc(participant["joined_at"]))
+        ParticipantInfo(
+            name=participant["name"],
+            joined_at=ensure_utc(participant["joined_at"]),
+            is_host=participant.get("is_host", False),
+        )
         for participant in room.get("participants", [])
         if participant.get("name") and participant.get("joined_at")
     ]
@@ -306,6 +313,7 @@ async def create_room(room: RoomCreateRequest):
     await expire_rooms_if_needed()
     name = room.name.strip()
     normalized_name = normalize_room_name(name)
+    host_name = format_participant_name(room.first_name, room.last_name)
     existing_room = await db.rooms.find_one(
         {
             "active": True,
@@ -334,7 +342,7 @@ async def create_room(room: RoomCreateRequest):
         "current_station": 1,
         "participant_count": 1,
         "host_token": host_token,
-        "participants": [{"name": "Anfitrião", "joined_at": now}],
+        "participants": [{"name": host_name, "joined_at": now, "is_host": True}],
     }
     await db.rooms.insert_one(new_room)
     return RoomCreatedResponse(
@@ -367,7 +375,13 @@ async def join_room(payload: RoomJoinRequest):
         {"room_id": payload.room_id},
         {
             "$inc": {"participant_count": 1},
-            "$push": {"participants": {"name": participant_name, "joined_at": datetime.now(timezone.utc)}},
+            "$push": {
+                "participants": {
+                    "name": participant_name,
+                    "joined_at": datetime.now(timezone.utc),
+                    "is_host": False,
+                }
+            },
         },
     )
     updated_room = await db.rooms.find_one({"room_id": payload.room_id, "active": True}, {"_id": 0})
