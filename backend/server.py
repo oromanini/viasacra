@@ -66,6 +66,11 @@ class RoomCreateRequest(BaseModel):
 class RoomJoinRequest(BaseModel):
     room_id: str
     password: str
+    first_name: str = Field(..., min_length=1)
+    last_name: str = Field(..., min_length=1)
+
+class RoomLeaveRequest(BaseModel):
+    name: str = Field(..., min_length=1)
 
 class RoomStationUpdate(BaseModel):
     station: int = Field(..., ge=1, le=14)
@@ -74,11 +79,16 @@ class RoomStationUpdate(BaseModel):
 class RoomCompleteRequest(BaseModel):
     host_token: str
 
+class ParticipantInfo(BaseModel):
+    name: str
+    joined_at: datetime
+
 class RoomInfo(BaseModel):
     room_id: str
     name: str
     expires_at: datetime
     current_station: int
+    participants: List[ParticipantInfo] = Field(default_factory=list)
 
 class RoomCreatedResponse(RoomInfo):
     host_token: str
@@ -149,6 +159,9 @@ def hash_password(password: str) -> str:
 def normalize_room_name(name: str) -> str:
     return " ".join(name.split()).strip().lower()
 
+def format_participant_name(first_name: str, last_name: str) -> str:
+    return " ".join(f"{first_name} {last_name}".split()).strip()
+
 async def expire_rooms_if_needed():
     now = datetime.now(timezone.utc)
     await db.rooms.update_many(
@@ -163,11 +176,17 @@ async def expire_rooms_loop():
 
 def room_to_info(room) -> RoomInfo:
     expires_at = ensure_utc(room["expires_at"])
+    participants = [
+        ParticipantInfo(name=participant["name"], joined_at=ensure_utc(participant["joined_at"]))
+        for participant in room.get("participants", [])
+        if participant.get("name") and participant.get("joined_at")
+    ]
     return RoomInfo(
         room_id=room["room_id"],
         name=room["name"],
         expires_at=expires_at,
         current_station=room["current_station"],
+        participants=participants,
     )
 
 def ensure_utc(value: datetime) -> datetime:
@@ -315,6 +334,7 @@ async def create_room(room: RoomCreateRequest):
         "current_station": 1,
         "participant_count": 1,
         "host_token": host_token,
+        "participants": [{"name": "Anfitrião", "joined_at": now}],
     }
     await db.rooms.insert_one(new_room)
     return RoomCreatedResponse(
@@ -342,11 +362,39 @@ async def join_room(payload: RoomJoinRequest):
         raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
     if hash_password(payload.password) != room["password_hash"]:
         raise HTTPException(status_code=401, detail="Senha incorreta.")
+    participant_name = format_participant_name(payload.first_name, payload.last_name)
     await db.rooms.update_one(
         {"room_id": payload.room_id},
-        {"$inc": {"participant_count": 1}},
+        {
+            "$inc": {"participant_count": 1},
+            "$push": {"participants": {"name": participant_name, "joined_at": datetime.now(timezone.utc)}},
+        },
     )
-    return room_to_info(room)
+    updated_room = await db.rooms.find_one({"room_id": payload.room_id, "active": True}, {"_id": 0})
+    if not updated_room:
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    return room_to_info(updated_room)
+
+@api_router.post("/rooms/{room_id}/leave", response_model=RoomInfo)
+async def leave_room(room_id: str, payload: RoomLeaveRequest):
+    await expire_rooms_if_needed()
+    room = await db.rooms.find_one(
+        {"room_id": room_id, "active": True},
+        {"_id": 0},
+    )
+    if not room:
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    await db.rooms.update_one(
+        {"room_id": room_id},
+        {
+            "$inc": {"participant_count": -1},
+            "$pull": {"participants": {"name": payload.name}},
+        },
+    )
+    updated_room = await db.rooms.find_one({"room_id": room_id, "active": True}, {"_id": 0})
+    if not updated_room:
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    return room_to_info(updated_room)
 
 @api_router.get("/rooms/{room_id}", response_model=RoomInfo)
 async def get_room(room_id: str):

@@ -5,6 +5,7 @@ import IntroPage from "@/pages/IntroPage";
 import ViaSacraPage from "@/pages/ViaSacraPage";
 import FinalPage from "@/pages/FinalPage";
 import AdminPage from "@/pages/AdminPage";
+import { Toaster } from "@/components/ui/sonner";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </BrowserRouter>
+      <Toaster />
     </div>
   );
 }
