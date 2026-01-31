@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/sonner';
-import { Info, Share2 } from 'lucide-react';
+import { Info, Share2, Star } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -312,9 +312,17 @@ const ViaSacraPage = () => {
               {participants.map((participant) => (
                 <li
                   key={`${participant.name}-${participant.joined_at}`}
-                  className="text-sm text-foreground"
+                  className="flex items-center gap-2 text-sm text-foreground"
                 >
-                  {participant.name}
+                  <span className={participant.is_host ? 'font-semibold text-primary' : undefined}>
+                    {participant.name}
+                  </span>
+                  {participant.is_host && (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-primary">
+                      <Star className="h-3.5 w-3.5 text-yellow-500" aria-hidden="true" />
+                      Anfitrião
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
