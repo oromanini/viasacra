@@ -5,6 +5,8 @@ import ViaMap from '@/components/ViaMap';
 import StationCard from '@/components/StationCard';
 import Navigation from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +31,15 @@ const ViaSacraPage = () => {
   const [syncMessage, setSyncMessage] = useState('');
   const [participants, setParticipants] = useState([]);
   const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [hostLoginOpen, setHostLoginOpen] = useState(false);
+  const [hostFirstName, setHostFirstName] = useState(
+    localStorage.getItem('viaSacraHostFirstName') || '',
+  );
+  const [hostLastName, setHostLastName] = useState(
+    localStorage.getItem('viaSacraHostLastName') || '',
+  );
+  const [hostPassword, setHostPassword] = useState('');
+  const [hostLoginError, setHostLoginError] = useState('');
   const redirectingRef = useRef(false);
   const previousParticipantsRef = useRef([]);
   const initialParticipantsLoadedRef = useRef(false);
@@ -151,6 +162,38 @@ const ViaSacraPage = () => {
     }
   };
 
+  const handleHostLogin = async (event) => {
+    event.preventDefault();
+    if (!roomId) {
+      return;
+    }
+    setHostLoginError('');
+    try {
+      const response = await axios.post(`${API}/rooms/${roomId}/host-login`, {
+        password: hostPassword,
+        first_name: hostFirstName,
+        last_name: hostLastName,
+      });
+      const { host_token: newHostToken, current_station: station } = response.data;
+      localStorage.setItem('viaSacraRole', 'host');
+      localStorage.setItem('viaSacraHostToken', newHostToken);
+      localStorage.setItem('viaSacraHostFirstName', hostFirstName);
+      localStorage.setItem('viaSacraHostLastName', hostLastName);
+      setRole('host');
+      setHostToken(newHostToken);
+      if (station) {
+        setCurrentStation(station);
+        setSearchParams({ station, roomId });
+      }
+      setHostPassword('');
+      setHostLoginOpen(false);
+      toast('Anfitrião reconectado');
+    } catch (error) {
+      console.error('Erro ao reentrar como anfitrião:', error);
+      setHostLoginError('Não foi possível autenticar como anfitrião.');
+    }
+  };
+
   // Fetch station data
   useEffect(() => {
     const fetchStation = async () => {
@@ -267,8 +310,20 @@ const ViaSacraPage = () => {
         <div className="flex-1 overflow-y-auto px-4 py-6 pb-24 md:px-8 md:py-10 md:pb-28">
           <div className="mx-auto max-w-3xl">
             {roomId && role !== 'host' && (
-              <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary">
-                Acompanhando o anfitrião. As etapas são sincronizadas automaticamente.
+              <div className="mb-4 flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary md:flex-row md:items-center md:justify-between">
+                <span>Acompanhando o anfitrião. As etapas são sincronizadas automaticamente.</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setHostLoginError('');
+                    setHostLoginOpen(true);
+                  }}
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  Sou o anfitrião
+                </Button>
               </div>
             )}
             {syncMessage && (
@@ -327,6 +382,55 @@ const ViaSacraPage = () => {
               ))}
             </ul>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={hostLoginOpen} onOpenChange={setHostLoginOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reentrar como anfitrião</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleHostLogin} className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="host-first-name">Nome</Label>
+                <Input
+                  id="host-first-name"
+                  value={hostFirstName}
+                  onChange={(event) => setHostFirstName(event.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="host-last-name">Sobrenome</Label>
+                <Input
+                  id="host-last-name"
+                  value={hostLastName}
+                  onChange={(event) => setHostLastName(event.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="host-password">Senha da sala</Label>
+              <Input
+                id="host-password"
+                type="password"
+                value={hostPassword}
+                onChange={(event) => setHostPassword(event.target.value)}
+                required
+              />
+            </div>
+            {hostLoginError && (
+              <p className="text-sm text-destructive">{hostLoginError}</p>
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={() => setHostLoginOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Entrar como anfitrião</Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

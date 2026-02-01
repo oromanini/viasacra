@@ -61,6 +61,8 @@ const RoomPage = () => {
       localStorage.setItem('viaSacraRoomId', roomId);
       localStorage.setItem('viaSacraRole', 'host');
       localStorage.setItem('viaSacraHostToken', hostToken);
+      localStorage.setItem('viaSacraHostFirstName', createFirstName);
+      localStorage.setItem('viaSacraHostLastName', createLastName);
       navigate(`/intro?roomId=${roomId}`);
     } catch (err) {
       console.error('Erro ao criar sala:', err);

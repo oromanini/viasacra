@@ -71,6 +71,11 @@ class RoomJoinRequest(BaseModel):
     first_name: str = Field(..., min_length=1)
     last_name: str = Field(..., min_length=1)
 
+class RoomHostLoginRequest(BaseModel):
+    password: str
+    first_name: str = Field(..., min_length=1)
+    last_name: str = Field(..., min_length=1)
+
 class RoomLeaveRequest(BaseModel):
     name: str = Field(..., min_length=1)
 
@@ -388,6 +393,62 @@ async def join_room(payload: RoomJoinRequest):
     if not updated_room:
         raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
     return room_to_info(updated_room)
+
+@api_router.post("/rooms/{room_id}/host-login", response_model=RoomCreatedResponse)
+async def host_login(room_id: str, payload: RoomHostLoginRequest):
+    await expire_rooms_if_needed()
+    room = await db.rooms.find_one(
+        {"room_id": room_id, "active": True},
+        {"_id": 0},
+    )
+    if not room:
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    if ensure_utc(room["expires_at"]) <= datetime.now(timezone.utc):
+        await db.rooms.update_one(
+            {"room_id": room_id},
+            {"$set": {"active": False}},
+        )
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    if hash_password(payload.password) != room["password_hash"]:
+        raise HTTPException(status_code=401, detail="Senha incorreta.")
+    host_name = format_participant_name(payload.first_name, payload.last_name)
+    host_participant = next(
+        (participant for participant in room.get("participants", []) if participant.get("is_host")),
+        None,
+    )
+    if not host_participant or host_participant.get("name") != host_name:
+        raise HTTPException(status_code=403, detail="Apenas o anfitrião pode acessar.")
+    if not any(participant.get("name") == host_name for participant in room.get("participants", [])):
+        await db.rooms.update_one(
+            {"room_id": room_id},
+            {
+                "$inc": {"participant_count": 1},
+                "$push": {
+                    "participants": {
+                        "name": host_name,
+                        "joined_at": datetime.now(timezone.utc),
+                        "is_host": True,
+                    }
+                },
+            },
+        )
+        room = await db.rooms.find_one({"room_id": room_id, "active": True}, {"_id": 0}) or room
+    return RoomCreatedResponse(
+        room_id=room["room_id"],
+        name=room["name"],
+        expires_at=ensure_utc(room["expires_at"]),
+        current_station=room.get("current_station", 1),
+        host_token=room["host_token"],
+        participants=[
+            ParticipantInfo(
+                name=participant["name"],
+                joined_at=ensure_utc(participant["joined_at"]),
+                is_host=participant.get("is_host", False),
+            )
+            for participant in room.get("participants", [])
+            if participant.get("name") and participant.get("joined_at")
+        ],
+    )
 
 @api_router.post("/rooms/{room_id}/leave", response_model=RoomInfo)
 async def leave_room(room_id: str, payload: RoomLeaveRequest):
