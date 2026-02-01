@@ -93,7 +93,7 @@ const IntroPage = () => {
       data-testid="intro-page"
     >
       {roomId && (
-        <div className="absolute right-4 top-4 z-20 flex items-center gap-2">
+        <div className="fixed right-4 top-4 z-20 flex items-center gap-2 rounded-xl border border-purple-200/40 bg-purple-500/20 px-2 py-1 shadow-lg backdrop-blur-md">
           <Button
             type="button"
             variant="ghost"
