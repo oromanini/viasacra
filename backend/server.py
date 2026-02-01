@@ -129,34 +129,58 @@ class AdminLoginResponse(BaseModel):
 
 
 # Initialize database with Via Sacra data
+def load_seed_data() -> dict:
+    seed_file = ROOT_DIR / "via_sacra_data.json"
+    with open(seed_file, "r", encoding="utf-8") as seed:
+        return json.load(seed)
+
+
+async def sync_seed_data(seed_data: dict) -> None:
+    if not seed_data:
+        return
+    intro_data = seed_data.get("intro")
+    if intro_data:
+        await db.intro.delete_many({})
+        await db.intro.insert_one(intro_data)
+
+    stations_data = seed_data.get("stations", [])
+    for station in stations_data:
+        station_id = station.get("id")
+        if station_id is None:
+            continue
+        await db.stations.update_one({"id": station_id}, {"$set": station}, upsert=True)
+
+    final_prayers_data = seed_data.get("final_prayers", [])
+    if final_prayers_data:
+        await db.final_prayers.delete_many({})
+        await db.final_prayers.insert_many(final_prayers_data)
+
+
 async def init_db():
     try:
+        seed_data = load_seed_data()
         # Check if data already exists
         count = await db.stations.count_documents({})
         if count > 0:
-            logger.info("Database already initialized")
+            await sync_seed_data(seed_data)
+            logger.info("Database already initialized; seed data synchronized")
             return
-        
-        # Load design guidelines
-        design_file = Path(__file__).parent.parent / 'design_guidelines.json'
-        with open(design_file, 'r', encoding='utf-8') as f:
-            design_data = json.load(f)
-        
+
         # Insert intro
-        intro_data = design_data['data_seed']['intro']
+        intro_data = seed_data["intro"]
         await db.intro.delete_many({})
         await db.intro.insert_one(intro_data)
-        
+
         # Insert stations
-        stations_data = design_data['data_seed']['stations']
+        stations_data = seed_data["stations"]
         await db.stations.delete_many({})
         await db.stations.insert_many(stations_data)
-        
+
         # Insert final prayers
-        final_prayers_data = design_data['data_seed']['final_prayers']
+        final_prayers_data = seed_data["final_prayers"]
         await db.final_prayers.delete_many({})
         await db.final_prayers.insert_many(final_prayers_data)
-        
+
         logger.info("Database initialized with Via Sacra data")
     except Exception as e:
         logger.error(f"Error initializing database: {e}")
