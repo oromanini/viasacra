@@ -2,17 +2,30 @@ import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
 const StationCard = ({ station }) => {
+  const [imageLoaded, setImageLoaded] = React.useState(false);
   if (!station) return null;
 
   return (
     <Card className="w-full shadow-lg border-border" data-testid="station-card">
       <CardHeader className="p-0">
-        <div className="w-full h-64 overflow-hidden rounded-t-lg">
+        <div className="relative w-full h-64 overflow-hidden rounded-t-lg">
+          {!imageLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted/40">
+              <div
+                className="h-6 w-6 rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground/60 animate-spin"
+                aria-label="Carregando imagem"
+              />
+            </div>
+          )}
           <img
             src={station.image_url}
             alt={station.title}
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover transition-opacity duration-300 ${
+              imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
             data-testid="station-image"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageLoaded(true)}
           />
         </div>
       </CardHeader>
