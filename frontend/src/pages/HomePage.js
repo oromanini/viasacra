@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Lock, Users } from 'lucide-react';
+import { Loader2, Lock, User, Users } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +22,7 @@ const HomePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [error, setError] = useState('');
   const [loadingSolo, setLoadingSolo] = useState(false);
+  const [loadingGroup, setLoadingGroup] = useState(false);
   const [roomClosedOpen, setRoomClosedOpen] = useState(false);
   const [completedOpen, setCompletedOpen] = useState(false);
 
@@ -63,6 +64,13 @@ const HomePage = () => {
     }
   };
 
+  const handleGroup = () => {
+    setLoadingGroup(true);
+    setTimeout(() => {
+      navigate('/salas');
+    }, 0);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-accent px-6 py-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
@@ -101,7 +109,7 @@ const HomePage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Inicie agora mesmo e receba a oração inicial sem precisar preencher dados.
+                Inicie agora mesmo a via sacra solo.
               </p>
               <Button
                 type="button"
@@ -109,7 +117,17 @@ const HomePage = () => {
                 onClick={handleSolo}
                 disabled={loadingSolo}
               >
-                {loadingSolo ? 'Preparando...' : 'Fazer Via Sacra sozinho'}
+                {loadingSolo ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                    Preparando...
+                  </>
+                ) : (
+                  <>
+                    <User className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Fazer Via Sacra sozinho
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>
@@ -125,10 +143,20 @@ const HomePage = () => {
               <Button
                 type="button"
                 className="w-full bg-purple-600 text-white hover:bg-purple-700"
-                onClick={() => navigate('/salas')}
+                onClick={handleGroup}
+                disabled={loadingGroup}
               >
-                <Users className="mr-2 h-4 w-4" aria-hidden="true" />
-                Fazer via sacra em grupo
+                {loadingGroup ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                    Carregando...
+                  </>
+                ) : (
+                  <>
+                    <Users className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Fazer via sacra em grupo
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>
