@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Lock } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +20,6 @@ const API = `${BACKEND_URL}/api`;
 
 const RoomPage = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [createName, setCreateName] = useState('');
   const [createFirstName, setCreateFirstName] = useState('');
   const [createLastName, setCreateLastName] = useState('');
@@ -32,20 +30,6 @@ const RoomPage = () => {
   const [joinPassword, setJoinPassword] = useState('');
   const [error, setError] = useState('');
   const [duplicateNameOpen, setDuplicateNameOpen] = useState(false);
-  const [roomClosedOpen, setRoomClosedOpen] = useState(false);
-  const [completedOpen, setCompletedOpen] = useState(false);
-
-  useEffect(() => {
-    if (searchParams.get('roomClosed') === '1') {
-      setRoomClosedOpen(true);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (searchParams.get('completed') === '1') {
-      setCompletedOpen(true);
-    }
-  }, [searchParams]);
 
   const handleCreate = async (event) => {
     event.preventDefault();
@@ -99,25 +83,12 @@ const RoomPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-accent px-6 py-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
-        <header className="flex flex-col gap-4 text-center md:relative md:text-left">
+        <header className="flex flex-col gap-4 text-center md:text-left">
           <div className="flex flex-col gap-2 md:items-start">
-            <h1 className="heading-font text-4xl font-bold text-primary">Salas da Via Sacra</h1>
+            <h1 className="heading-font text-4xl font-bold text-primary">Via Sacra em grupo</h1>
             <p className="text-muted-foreground">
               Crie uma sala para ser anfitrião ou entre como orante com a senha.
             </p>
-          </div>
-          <div className="md:absolute md:right-0 md:top-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => navigate('/admin')}
-              data-testid="admin-button"
-              aria-label="Área Administrativa"
-            >
-              <Lock className="h-4 w-4" aria-hidden="true" />
-              <span className="sr-only">Área Administrativa</span>
-            </Button>
           </div>
         </header>
 
@@ -257,54 +228,6 @@ const RoomPage = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction>Entendi</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={roomClosedOpen}
-        onOpenChange={(open) => {
-          setRoomClosedOpen(open);
-          if (!open && searchParams.get('roomClosed') === '1') {
-            const nextParams = new URLSearchParams(searchParams);
-            nextParams.delete('roomClosed');
-            setSearchParams(nextParams, { replace: true });
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Sala encerrada</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você deve iniciar uma nova sala.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction>Ok</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={completedOpen}
-        onOpenChange={(open) => {
-          setCompletedOpen(open);
-          if (!open && searchParams.get('completed') === '1') {
-            const nextParams = new URLSearchParams(searchParams);
-            nextParams.delete('completed');
-            setSearchParams(nextParams, { replace: true });
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Via Sacra concluída</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você concluiu a via sacra online! Deus te abençoe!
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction>Amém</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
