@@ -103,6 +103,11 @@ const ViaSacraPage = () => {
       setParticipants(incomingParticipants);
     } catch (error) {
       console.error('Erro ao sincronizar sala:', error);
+      if (!redirectingRef.current && error.response?.status === 410) {
+        redirectingRef.current = true;
+        navigate('/final', { replace: true });
+        return;
+      }
       if (!redirectingRef.current && error.response?.status === 404) {
         redirectingRef.current = true;
         localStorage.removeItem('viaSacraRoomId');

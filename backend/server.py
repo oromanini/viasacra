@@ -498,11 +498,12 @@ async def leave_room(room_id: str, payload: RoomLeaveRequest):
 @api_router.get("/rooms/{room_id}", response_model=RoomInfo)
 async def get_room(room_id: str):
     await expire_rooms_if_needed()
-    room = await db.rooms.find_one(
-        {"room_id": room_id, "active": True},
-        {"_id": 0},
-    )
+    room = await db.rooms.find_one({"room_id": room_id}, {"_id": 0})
     if not room:
+        raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
+    if not room.get("active", False):
+        if room.get("completed_at"):
+            raise HTTPException(status_code=410, detail="Sala concluída.")
         raise HTTPException(status_code=404, detail="Sala não encontrada ou expirada.")
     if ensure_utc(room["expires_at"]) <= datetime.now(timezone.utc):
         await db.rooms.update_one(
