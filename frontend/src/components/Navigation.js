@@ -2,7 +2,15 @@ import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const Navigation = ({ currentStation, totalStations, onPrevious, onNext, allowNavigation = true }) => {
+const Navigation = ({
+  currentStation,
+  totalStations,
+  onPrevious,
+  onNext,
+  allowNavigation = true,
+  previousLoading = false,
+  nextLoading = false,
+}) => {
   const hasPrevious = currentStation > 1;
   const isLastStation = currentStation === totalStations;
 
@@ -15,6 +23,8 @@ const Navigation = ({ currentStation, totalStations, onPrevious, onNext, allowNa
         <Button
           onClick={onPrevious}
           disabled={!hasPrevious || !allowNavigation}
+          loading={previousLoading}
+          loadingText="Carregando..."
           variant="outline"
           size="lg"
           className="min-h-[40px] flex-1 max-w-[140px] px-3 text-sm sm:min-h-[48px] sm:max-w-[200px] sm:px-8 sm:text-base"
@@ -34,6 +44,8 @@ const Navigation = ({ currentStation, totalStations, onPrevious, onNext, allowNa
         <Button
           onClick={onNext}
           disabled={!allowNavigation}
+          loading={nextLoading}
+          loadingText={isLastStation ? 'Finalizando...' : 'Carregando...'}
           size="lg"
           className="min-h-[40px] flex-1 max-w-[140px] bg-primary px-3 text-sm hover:bg-primary/90 sm:min-h-[48px] sm:max-w-[200px] sm:px-8 sm:text-base"
           data-testid={isLastStation ? "finish-button" : "next-button"}

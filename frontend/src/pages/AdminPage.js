@@ -34,6 +34,8 @@ const AdminPage = () => {
   const [loginEmail, setLoginEmail] = useState(ADMIN_EMAIL);
   const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [signOutLoading, setSignOutLoading] = useState(false);
+  const [deactivatingRoomId, setDeactivatingRoomId] = useState('');
 
   const isAuthorized = useMemo(
     () => adminEmail && adminEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase(),
@@ -71,6 +73,7 @@ const AdminPage = () => {
     if (!adminToken) {
       return;
     }
+    setDeactivatingRoomId(roomId);
     try {
       await axios.patch(
         `${API}/admin/rooms/${roomId}/deactivate`,
@@ -85,13 +88,17 @@ const AdminPage = () => {
     } catch (err) {
       console.error('Erro ao desativar sala:', err);
       setError('Não foi possível desativar a sala.');
+    } finally {
+      setDeactivatingRoomId('');
     }
   };
 
   const handleSignOut = () => {
+    setSignOutLoading(true);
     setAdminToken('');
     setAdminEmail('');
     localStorage.removeItem(ADMIN_TOKEN_KEY);
+    setSignOutLoading(false);
   };
 
   useEffect(() => {
@@ -184,7 +191,7 @@ const AdminPage = () => {
                     : 'Seu email não possui permissão para acessar esta área.'}
                 </p>
               </div>
-              <Button variant="outline" onClick={handleSignOut}>
+              <Button variant="outline" onClick={handleSignOut} loading={signOutLoading} loadingText="Saindo...">
                 Sair
               </Button>
             </CardHeader>
@@ -247,6 +254,8 @@ const AdminPage = () => {
                             className="min-w-[160px]"
                             onClick={() => handleDeactivate(room.room_id)}
                             disabled={!room.active}
+                            loading={deactivatingRoomId === room.room_id}
+                            loadingText="Desativando..."
                           >
                             Desativar sala
                           </Button>
@@ -291,8 +300,8 @@ const AdminPage = () => {
                     onChange={(event) => setLoginPassword(event.target.value)}
                   />
                 </div>
-                <Button onClick={handleNativeLogin} disabled={loginLoading}>
-                  {loginLoading ? 'Entrando...' : 'Entrar'}
+                <Button onClick={handleNativeLogin} loading={loginLoading} loadingText="Entrando...">
+                  Entrar
                 </Button>
               </div>
             </CardContent>

@@ -30,10 +30,13 @@ const RoomPage = () => {
   const [joinPassword, setJoinPassword] = useState('');
   const [error, setError] = useState('');
   const [duplicateNameOpen, setDuplicateNameOpen] = useState(false);
+  const [creatingRoom, setCreatingRoom] = useState(false);
+  const [joiningRoom, setJoiningRoom] = useState(false);
 
   const handleCreate = async (event) => {
     event.preventDefault();
     setError('');
+    setCreatingRoom(true);
     try {
       const response = await axios.post(`${API}/rooms`, {
         name: createName,
@@ -55,12 +58,15 @@ const RoomPage = () => {
       } else {
         setError('Não foi possível criar a sala. Verifique os dados.');
       }
+    } finally {
+      setCreatingRoom(false);
     }
   };
 
   const handleJoin = async (event) => {
     event.preventDefault();
     setError('');
+    setJoiningRoom(true);
     try {
       const response = await axios.post(`${API}/rooms/join`, {
         room_id: joinRoomId,
@@ -77,6 +83,8 @@ const RoomPage = () => {
     } catch (err) {
       console.error('Erro ao entrar na sala:', err);
       setError('Não foi possível entrar na sala. Verifique a senha.');
+    } finally {
+      setJoiningRoom(false);
     }
   };
 
@@ -149,7 +157,12 @@ const RoomPage = () => {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+                <Button
+                  type="submit"
+                  className="w-full bg-primary hover:bg-primary/90"
+                  loading={creatingRoom}
+                  loadingText="Criando sala..."
+                >
                   Criar sala
                 </Button>
               </form>
@@ -205,7 +218,12 @@ const RoomPage = () => {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full bg-purple-600 text-white hover:bg-purple-700">
+                <Button
+                  type="submit"
+                  className="w-full bg-purple-600 text-white hover:bg-purple-700"
+                  loading={joiningRoom}
+                  loadingText="Entrando..."
+                >
                   Entrar como orante
                 </Button>
               </form>
