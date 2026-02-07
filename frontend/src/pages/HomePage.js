@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Lock, User, Users } from 'lucide-react';
+import { Lock, User, Users } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -115,19 +115,13 @@ const HomePage = () => {
                 type="button"
                 className="w-full bg-primary hover:bg-primary/90"
                 onClick={handleSolo}
-                disabled={loadingSolo}
+                loading={loadingSolo}
+                loadingText="Preparando..."
               >
-                {loadingSolo ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                    Preparando...
-                  </>
-                ) : (
-                  <>
-                    <User className="mr-2 h-4 w-4" aria-hidden="true" />
-                    Fazer Via Sacra sozinho
-                  </>
-                )}
+                <>
+                  <User className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Fazer Via Sacra sozinho
+                </>
               </Button>
             </CardContent>
           </Card>
@@ -144,19 +138,13 @@ const HomePage = () => {
                 type="button"
                 className="w-full bg-purple-600 text-white hover:bg-purple-700"
                 onClick={handleGroup}
-                disabled={loadingGroup}
+                loading={loadingGroup}
+                loadingText="Carregando..."
               >
-                {loadingGroup ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                    Carregando...
-                  </>
-                ) : (
-                  <>
-                    <Users className="mr-2 h-4 w-4" aria-hidden="true" />
-                    Fazer via sacra em grupo
-                  </>
-                )}
+                <>
+                  <Users className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Fazer via sacra em grupo
+                </>
               </Button>
             </CardContent>
           </Card>

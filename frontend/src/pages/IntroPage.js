@@ -23,6 +23,8 @@ const IntroPage = () => {
   const [roomId, setRoomId] = useState(null);
   const [role, setRole] = useState('solo');
   const [infoOpen, setInfoOpen] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [sharingRoom, setSharingRoom] = useState(false);
 
   useEffect(() => {
     const storedRoomId = searchParams.get('roomId') || localStorage.getItem('viaSacraRoomId');
@@ -50,8 +52,10 @@ const IntroPage = () => {
   }, []);
 
   const handleStart = async () => {
+    setStarting(true);
     if (!roomId) {
       navigate('/via-sacra?station=1');
+      setStarting(false);
       return;
     }
 
@@ -61,6 +65,8 @@ const IntroPage = () => {
       navigate(`/via-sacra?roomId=${roomId}&station=${station}`);
     } catch (error) {
       console.error('Erro ao carregar a sala:', error);
+    } finally {
+      setStarting(false);
     }
   };
 
@@ -68,12 +74,15 @@ const IntroPage = () => {
     if (!roomId) {
       return;
     }
+    setSharingRoom(true);
     try {
       await navigator.clipboard.writeText(roomId);
       toast('Código da sala copiado');
     } catch (error) {
       console.error('Erro ao copiar o código da sala:', error);
       toast('Não foi possível copiar o código');
+    } finally {
+      setSharingRoom(false);
     }
   };
 
@@ -111,6 +120,7 @@ const IntroPage = () => {
             className="h-9 w-9 text-muted-foreground hover:text-foreground"
             onClick={handleShareRoom}
             aria-label="Compartilhar código da sala"
+            loading={sharingRoom}
           >
             <Share2 className="h-4 w-4" />
           </Button>
@@ -150,6 +160,8 @@ const IntroPage = () => {
                 size="lg"
                 className="min-h-[56px] px-12 text-lg bg-primary hover:bg-primary/90"
                 data-testid="start-button"
+                loading={starting}
+                loadingText="Preparando..."
               >
                 {role === 'orante' ? 'Entrar na Via Sacra' : 'Começar Via Sacra'}
               </Button>

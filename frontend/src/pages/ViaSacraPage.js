@@ -40,6 +40,12 @@ const ViaSacraPage = () => {
   );
   const [hostPassword, setHostPassword] = useState('');
   const [hostLoginError, setHostLoginError] = useState('');
+  const [sharingRoom, setSharingRoom] = useState(false);
+  const [openingParticipants, setOpeningParticipants] = useState(false);
+  const [openingHostLogin, setOpeningHostLogin] = useState(false);
+  const [hostLoginLoading, setHostLoginLoading] = useState(false);
+  const [previousLoading, setPreviousLoading] = useState(false);
+  const [nextLoading, setNextLoading] = useState(false);
   const redirectingRef = useRef(false);
   const previousParticipantsRef = useRef([]);
   const initialParticipantsLoadedRef = useRef(false);
@@ -153,12 +159,15 @@ const ViaSacraPage = () => {
     if (!roomId) {
       return;
     }
+    setSharingRoom(true);
     try {
       await navigator.clipboard.writeText(roomId);
       toast('Código da sala copiado');
     } catch (error) {
       console.error('Erro ao copiar o código da sala:', error);
       toast('Não foi possível copiar o código');
+    } finally {
+      setSharingRoom(false);
     }
   };
 
@@ -168,6 +177,7 @@ const ViaSacraPage = () => {
       return;
     }
     setHostLoginError('');
+    setHostLoginLoading(true);
     try {
       const response = await axios.post(`${API}/rooms/${roomId}/host-login`, {
         password: hostPassword,
@@ -191,6 +201,8 @@ const ViaSacraPage = () => {
     } catch (error) {
       console.error('Erro ao reentrar como anfitrião:', error);
       setHostLoginError('Não foi possível autenticar como anfitrião.');
+    } finally {
+      setHostLoginLoading(false);
     }
   };
 
@@ -217,6 +229,7 @@ const ViaSacraPage = () => {
     if (currentStation <= 1) {
       return;
     }
+    setPreviousLoading(true);
     const newStation = currentStation - 1;
     if (roomId && role === 'host') {
       try {
@@ -232,9 +245,11 @@ const ViaSacraPage = () => {
       setSearchParams({ station: newStation });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    setPreviousLoading(false);
   };
 
   const handleNext = async () => {
+    setNextLoading(true);
     if (currentStation < 14) {
       const newStation = currentStation + 1;
       if (roomId && role === 'host') {
@@ -263,6 +278,7 @@ const ViaSacraPage = () => {
       }
       navigate('/final');
     }
+    setNextLoading(false);
   };
 
   return (
@@ -274,8 +290,13 @@ const ViaSacraPage = () => {
             variant="ghost"
             size="icon"
             className="h-9 w-9 text-muted-foreground hover:text-foreground"
-            onClick={() => setParticipantsOpen(true)}
+            onClick={() => {
+              setOpeningParticipants(true);
+              setParticipantsOpen(true);
+              setOpeningParticipants(false);
+            }}
             aria-label="Ver participantes"
+            loading={openingParticipants}
           >
             <Info className="h-4 w-4" />
           </Button>
@@ -286,6 +307,7 @@ const ViaSacraPage = () => {
             className="h-9 w-9 text-muted-foreground hover:text-foreground"
             onClick={handleShareRoom}
             aria-label="Compartilhar código da sala"
+            loading={sharingRoom}
           >
             <Share2 className="h-4 w-4" />
           </Button>
@@ -317,10 +339,13 @@ const ViaSacraPage = () => {
                   variant="outline"
                   size="sm"
                   onClick={() => {
+                    setOpeningHostLogin(true);
                     setHostLoginError('');
                     setHostLoginOpen(true);
+                    setOpeningHostLogin(false);
                   }}
                   className="border-primary/30 text-primary hover:bg-primary/10"
+                  loading={openingHostLogin}
                 >
                   Sou o anfitrião
                 </Button>
@@ -353,6 +378,8 @@ const ViaSacraPage = () => {
         onPrevious={handlePrevious}
         onNext={handleNext}
         allowNavigation={!roomId || role === 'host'}
+        previousLoading={previousLoading}
+        nextLoading={nextLoading}
       />
 
       <Dialog open={participantsOpen} onOpenChange={setParticipantsOpen}>
@@ -428,7 +455,9 @@ const ViaSacraPage = () => {
               <Button type="button" variant="outline" onClick={() => setHostLoginOpen(false)}>
                 Cancelar
               </Button>
-              <Button type="submit">Entrar como anfitrião</Button>
+              <Button type="submit" loading={hostLoginLoading} loadingText="Entrando...">
+                Entrar como anfitrião
+              </Button>
             </div>
           </form>
         </DialogContent>
